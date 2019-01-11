@@ -66,7 +66,8 @@ CONFIGURE_FLAGS="--prefix=/usr \
     --enable-linux-user \
     --enable-guest-base \
     --disable-werror \
-    --target-list=$((for target in %{target_list}; do echo -n ${target}-linux-user,; done) | sed -e 's/,$//')"
+    --target-list=$((for target in %{target_list}; do echo -n ${target}-linux-user,; done) | sed -e 's/,$//') \
+    --disable-smartcard-nss"
 
 for mode in static dynamic; do
     mkdir build-$mode
