@@ -1,0 +1,67 @@
+diff --git a/linux-user/main.c b/linux-user/main.c
+index b453a39..7dd6b86 100644
+--- a/linux-user/main.c
++++ b/linux-user/main.c
+@@ -33,6 +33,7 @@
+ #include "qemu/timer.h"
+ #include "qemu/envlist.h"
+ #include "elf.h"
++#include <sys/resource.h>
+ 
+ char *exec_path;
+ 
+@@ -3919,6 +3920,17 @@ int main(int argc, char **argv, char **envp)
+         fprintf(stderr, "Unable to find CPU definition\n");
+         exit(1);
+     }
++
++#if defined(TARGET_MIPS)
++    {
++		//Set OPEN_MAX on 1024
++		struct rlimit rlim1;
++		rlim1.rlim_cur=1024;
++		rlim1.rlim_max=1024;
++		setrlimit(5, &rlim1);
++	}
++#endif //#if defined(TARGET_MIPS)
++
+     cpu = ENV_GET_CPU(env);
+     cpu_reset(cpu);
+ 
+diff --git a/linux-user/syscall.c b/linux-user/syscall.c
+index a50229d..b0157f7 100644
+--- a/linux-user/syscall.c
++++ b/linux-user/syscall.c
+@@ -1071,6 +1071,17 @@ static abi_long do_pipe(void *cpu_env, abi_ulong pipedes,
+         return host_pipe[0];
+ #elif defined(TARGET_MIPS)
+         ((CPUMIPSState*)cpu_env)->active_tc.gpr[3] = host_pipe[1];
++        
++    {
++		unsigned short val1=0;
++		val1 = (abi_long)(host_pipe[0] & 0xFFFFFFFF);
++	
++		abi_long *par;
++		*(&par) = (abi_long *)((CPUMIPSState*)cpu_env)->active_tc.gpr[4];
++		par[0]= val1;
++		par[1]= host_pipe[1];
++	}
++        
+         return host_pipe[0];
+ #elif defined(TARGET_SH4)
+         ((CPUSH4State*)cpu_env)->gregs[1] = host_pipe[1];
+@@ -3132,8 +3143,12 @@ static abi_long do_ipc(unsigned int call, int first,
+         break;
+ 
+     case IPCOP_semctl:
+-        ret = do_semctl(first, second, third, (union target_semun)(abi_ulong) ptr);
+-        break;
++        {
++            union target_semun *target_su;
++            target_su=(union target_semun *)(abi_ulong)ptr;
++            ret = do_semctl(first, second, third, *target_su);
++            break;
++        }
+ 
+     case IPCOP_msgget:
+         ret = get_errno(msgget(first, second));
