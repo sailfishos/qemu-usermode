@@ -19,6 +19,7 @@ Patch4:     0024-linux-user-lock-tcg.patch
 Patch5:     0025-linux-user-Run-multi-threaded-code-on-one-core.patch
 Patch6:     0026-linux-user-lock-tb-flushing-too.patch
 Patch7:     fix-strex.patch
+Patch8:     glibc_2.26_support.patch
 BuildRequires:  pkgconfig(ext2fs)
 BuildRequires:  pkgconfig(glib-2.0)
 BuildRequires:  pkgconfig(zlib)
@@ -54,6 +55,8 @@ QEMU is an extremely well-performing CPU emulator that allows you to choose betw
 %patch6 -p1
 # fix-strex.patch
 %patch7 -p1
+# glibc_2.26_support.patch
+%patch8 -p1
 
 %build
 CFLAGS=`echo $CFLAGS | sed 's|-fno-omit-frame-pointer||g'` ; export CFLAGS ;
@@ -101,7 +104,10 @@ rm -f $RPM_BUILD_ROOT/usr/share/qemu/openbios-sparc64
 rm -f $RPM_BUILD_ROOT/usr/libexec/qemu-bridge-helper
 rm -rf $RPM_BUILD_ROOT/etc
 rm -rf $RPM_BUILD_ROOT/%{_datadir}
-
+rm -rf $RPM_BUILD_ROOT/usr/include
+rm -rf $RPM_BUILD_ROOT/usr/lib/libcacard*
+rm -rf $RPM_BUILD_ROOT/usr/lib/pkgconfig/libcacard.pc
+rm -rf $RPM_BUILD_ROOT/usr/bin/vscclient
 
 %files
 %defattr(-,root,root,-)
