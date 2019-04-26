@@ -1,3 +1,9 @@
+* Mon Apr 8 2019 Aapi Hämäläinen <aapi.hamalainen@jollamobile.com> - 2.1.0-8
+- Update qemu-binfmt-conf.sh from upstream JB#45154
+
+* Thu Mar 14 2019 Sergey Chupligin <s.chupligin@omprussia.ru> - 2.1.0-7
+- Add support glibc > 2.26 JB#45154
+
 * Fri Jan 11 2019 Marko Kenttala <marko.kenttala@jolla.com> - 2.1.0-6
 - Add --disable-smartcard-nss. Contriutes to JB#36180
 
