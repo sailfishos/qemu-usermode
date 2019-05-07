@@ -4,7 +4,7 @@
 Name:       qemu-usermode
 Summary:    Universal CPU emulator
 Version:    2.1.0
-Release:    8
+Release:    9
 Group:      System/Emulators/PC
 License:    GPLv2
 ExclusiveArch:  %{ix86}
@@ -20,6 +20,7 @@ Patch5:     0025-linux-user-Run-multi-threaded-code-on-one-core.patch
 Patch6:     0026-linux-user-lock-tb-flushing-too.patch
 Patch7:     fix-strex.patch
 Patch8:     glibc_2.26_support.patch
+patch9:     0001-linux-user-add-getrandom-syscall.patch
 BuildRequires:  pkgconfig(ext2fs)
 BuildRequires:  pkgconfig(glib-2.0)
 BuildRequires:  pkgconfig(zlib)
@@ -57,6 +58,8 @@ QEMU is an extremely well-performing CPU emulator that allows you to choose betw
 %patch7 -p1
 # glibc_2.26_support.patch
 %patch8 -p1
+# 0001-linux-user-add-getrandom-syscall.patch
+%patch9 -p1
 
 %build
 CFLAGS=`echo $CFLAGS | sed 's|-fno-omit-frame-pointer||g'` ; export CFLAGS ;
