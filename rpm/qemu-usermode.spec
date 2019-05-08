@@ -3,7 +3,7 @@
 
 Name:       qemu-usermode
 Summary:    Universal CPU emulator
-Version:    4.0.1
+Version:    4.2.0
 Release:    1
 Group:      System/Emulators/PC
 License:    GPLv2 and BSD and MIT and CC-BY
@@ -24,8 +24,12 @@ Patch4: 0005-Revert-linux-user-Use-safe_syscall-wrapper-for-send-.patch
 Patch5: 0006-Revert-linux-user-Use-safe_syscall-wrapper-for-accep.patch
 Patch6: 0007-Revert-linux-user-Use-safe_syscall-for-wait-system-c.patch
 Patch7: 0008-Revert-linux-user-Use-safe_syscall-wrapper-for-conne.patch
+# crash fixes for qemu 4.2.0
+Patch8: 0009-Revert-tcg-i386-Fix-dupi-dupm-for-avx1-and-32-bit-ho.patch
+Patch9: 0010-Revert-tcg-i386-Implement-tcg_out_dupm_vec.patch
 # Fix libgcrypt tests:
-Patch8: 0009-Revert-target-arm-Use-gvec-for-VSRI-VSLI.patch
+Patch10: 0011-Revert-target-arm-Use-gvec-for-VSRI-VSLI.patch
+
 
 BuildRequires:  pkgconfig(ext2fs)
 BuildRequires:  pkgconfig(glib-2.0)
@@ -58,6 +62,8 @@ QEMU is an extremely well-performing CPU emulator that allows you to choose betw
 %patch6 -p1
 %patch7 -p1
 %patch8 -p1
+%patch9 -p1
+%patch10 -p1
 
 %build
 CFLAGS=`echo $CFLAGS | sed 's|-fno-omit-frame-pointer||g'` ; export CFLAGS ;
