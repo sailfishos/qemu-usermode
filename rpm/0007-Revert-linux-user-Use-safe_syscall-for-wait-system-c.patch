@@ -1,0 +1,56 @@
+From 8b1f096c3793539893fe02e2e87b7cf983972546 Mon Sep 17 00:00:00 2001
+From: Frajo Haider <f_haider@gmx.at>
+Date: Wed, 22 Jan 2020 11:00:44 +0200
+Subject: [PATCH 7/9] Revert "linux-user: Use safe_syscall for wait system
+ calls"
+
+This reverts commit 4af80a3783950380df85ecca78aea3e3bad2e846.
+---
+ linux-user/syscall.c | 10 +++-------
+ 1 file changed, 3 insertions(+), 7 deletions(-)
+
+diff --git a/linux-user/syscall.c b/linux-user/syscall.c
+index 8546c06341..fd61c0a500 100644
+--- a/linux-user/syscall.c
++++ b/linux-user/syscall.c
+@@ -730,10 +730,6 @@ static type safe_##name(type1 arg1, type2 arg2, type3 arg3, type4 arg4, \
+ 
+ safe_syscall3(ssize_t, read, int, fd, void *, buff, size_t, count)
+ safe_syscall3(ssize_t, write, int, fd, const void *, buff, size_t, count)
+-safe_syscall4(pid_t, wait4, pid_t, pid, int *, status, int, options, \
+-              struct rusage *, rusage)
+-safe_syscall5(int, waitid, idtype_t, idtype, id_t, id, siginfo_t *, infop, \
+-              int, options, struct rusage *, rusage)
+ safe_syscall6(int, pselect6, int, nfds, fd_set *, readfds, fd_set *, writefds, \
+               fd_set *, exceptfds, struct timespec *, timeout, void *, sig)
+ safe_syscall5(int, ppoll, struct pollfd *, ufds, unsigned int, nfds,
+@@ -7095,7 +7091,7 @@ static abi_long do_syscall1(void *cpu_env, int num, abi_long arg1,
+     case TARGET_NR_waitpid:
+         {
+             int status;
+-            ret = get_errno(safe_wait4(arg1, &status, arg3, 0));
++            ret = get_errno(waitpid(arg1, &status, arg3));
+             if (!is_error(ret) && arg2 && ret
+                 && put_user_s32(host_to_target_waitstatus(status), arg2))
+                 return -TARGET_EFAULT;
+@@ -7107,7 +7103,7 @@ static abi_long do_syscall1(void *cpu_env, int num, abi_long arg1,
+         {
+             siginfo_t info;
+             info.si_pid = 0;
+-            ret = get_errno(safe_waitid(arg1, arg2, &info, arg4, NULL));
++            ret = get_errno(waitid(arg1, arg2, &info, arg4));
+             if (!is_error(ret) && arg3 && info.si_pid != 0) {
+                 if (!(p = lock_user(VERIFY_WRITE, arg3, sizeof(target_siginfo_t), 0)))
+                     return -TARGET_EFAULT;
+@@ -8850,7 +8846,7 @@ static abi_long do_syscall1(void *cpu_env, int num, abi_long arg1,
+                 rusage_ptr = &rusage;
+             else
+                 rusage_ptr = NULL;
+-            ret = get_errno(safe_wait4(arg1, &status, arg3, rusage_ptr));
++            ret = get_errno(wait4(arg1, &status, arg3, rusage_ptr));
+             if (!is_error(ret)) {
+                 if (status_ptr && ret) {
+                     status = host_to_target_waitstatus(status);
+-- 
+2.20.1
+

@@ -3,28 +3,35 @@
 
 Name:       qemu-usermode
 Summary:    Universal CPU emulator
-Version:    4.0.0
-Release:    9
+Version:    4.0.1
+Release:    1
 Group:      System/Emulators/PC
-License:    GPLv2
+License:    GPLv2 and BSD and MIT and CC-BY
 ExclusiveArch:  %{ix86}
-URL:        https://launchpad.net/qemu-linaro/
-Source0:    qemu-%{version}.tar.xz
+URL:        https://www.qemu.org/
+Source0:    https://www.qemu.org/download/qemu-usermode-%{version}.tar.xz
 Source1:    qemu-binfmt-conf.sh
-#Patch0:     fix-glibc-install-locales.patch
-#Patch1:     mips-support.patch
-#Patch2:     0038-linux-user-fix-segfault-deadlock.pa.patch
-#Patch3:     0023-target-arm-linux-user-no-tb_flush-o.patch
-#Patch4:     0024-linux-user-lock-tcg.patch
-#Patch5:     0025-linux-user-Run-multi-threaded-code-on-one-core.patch
-#Patch6:     0026-linux-user-lock-tb-flushing-too.patch
-#Patch7:     fix-strex.patch
-#Patch8:     glibc_2.26_support.patch
-#patch9:     0001-linux-user-add-getrandom-syscall.patch
+
+# fix for sb2 (sb2 needs to hook open, openat):
+Patch0: 0001-Revert-linux-user-Use-safe_syscall-for-open-and-open.patch
+# Fix opus tests:
+Patch1: 0002-Revert-target-arm-Use-vector-operations-for-saturati.patch
+# fix for "kill -INT", etc. on qemu emulated binaries, e.g. ninja_test
+Patch2: 0003-linux-user-Also-ignore-attempts-to-block-SIGTERM-SIG.patch
+# fixes for sb2 (sb2 needs to hook these methods):
+Patch3: 0004-Revert-linux-user-Use-safe_syscall-for-execve-syscal.patch
+Patch4: 0005-Revert-linux-user-Use-safe_syscall-wrapper-for-send-.patch
+Patch5: 0006-Revert-linux-user-Use-safe_syscall-wrapper-for-accep.patch
+Patch6: 0007-Revert-linux-user-Use-safe_syscall-for-wait-system-c.patch
+Patch7: 0008-Revert-linux-user-Use-safe_syscall-wrapper-for-conne.patch
+# Fix libgcrypt tests:
+Patch8: 0009-Revert-target-arm-Use-gvec-for-VSRI-VSLI.patch
+
 BuildRequires:  pkgconfig(ext2fs)
 BuildRequires:  pkgconfig(glib-2.0)
 BuildRequires:  pkgconfig(zlib)
 BuildRequires:  bison
+BuildRequires:  flex
 BuildRequires:  curl-devel
 BuildRequires:  zlib-static
 BuildRequires:  glibc-static
@@ -40,28 +47,17 @@ QEMU is an extremely well-performing CPU emulator that allows you to choose betw
 
 
 %prep
-%setup -q -n qemu-%{version}/upstream
+%setup -q -n qemu-usermode-%{version}/upstream
 
-# fix-glibc-install-locales.patch
-#%patch0 -p1
-# mips-support.patch
-#%patch1 -p1
-# 0038-linux-user-fix-segfault-deadlock.pa.patch
-#%patch2 -p1
-# 0023-target-arm-linux-user-no-tb_flush-o.patch
-#%patch3 -p1
-# 0024-linux-user-lock-tcg.patch
-#%patch4 -p1
-# 0025-linux-user-Run-multi-threaded-code-on-one-core.patch
-#%patch5 -p1
-# 0026-linux-user-lock-tb-flushing-too.patch
-#%patch6 -p1
-# fix-strex.patch
-#%patch7 -p1
-# glibc_2.26_support.patch
-#%patch8 -p1
-# 0001-linux-user-add-getrandom-syscall.patch
-#%patch9 -p1
+%patch0 -p1
+%patch1 -p1
+%patch2 -p1
+%patch3 -p1
+%patch4 -p1
+%patch5 -p1
+%patch6 -p1
+%patch7 -p1
+%patch8 -p1
 
 %build
 CFLAGS=`echo $CFLAGS | sed 's|-fno-omit-frame-pointer||g'` ; export CFLAGS ;
@@ -71,15 +67,17 @@ CONFIGURE_FLAGS=" \
     --prefix=/usr \
     --sysconfdir=%_sysconfdir \
     --interp-prefix=/usr/share/qemu/qemu-i386 \
+    --disable-system \
     --enable-linux-user \
     --disable-werror \
+    --disable-strip \
     --target-list=$((for target in %{target_list}; do echo -n ${target}-linux-user,; done) | sed -e 's/,$//')"
 
 for mode in static dynamic; do
-    mkdir build-$mode
+    mkdir -p build-$mode
     cd build-$mode
     if [ $mode = static ]; then
-        ../configure --static $CONFIGURE_FLAGS
+        ../configure --static $CONFIGURE_FLAGS --disable-tools
     else
         ../configure $CONFIGURE_FLAGS
     fi
@@ -112,10 +110,26 @@ rm -rf $RPM_BUILD_ROOT/usr/lib/libcacard*
 rm -rf $RPM_BUILD_ROOT/usr/lib/pkgconfig/libcacard.pc
 rm -rf $RPM_BUILD_ROOT/usr/bin/vscclient
 
+# Install binfmt
+%global binfmt_dir %{buildroot}%{_exec_prefix}/lib/binfmt.d
+mkdir -p %{binfmt_dir}
+
+./scripts/qemu-binfmt-conf.sh --systemd ALL --exportdir %{binfmt_dir} --qemu-path %{_bindir}
+for i in %{binfmt_dir}/*; do
+    mv $i $(echo $i | sed 's/.conf/-dynamic.conf/')
+done
+
+for regularfmt in %{binfmt_dir}/*; do
+  staticfmt="$(echo $regularfmt | sed 's/-dynamic/-static/g')"
+  cat $regularfmt | tr -d '\n' | sed "s/:$/-static:F/" > $staticfmt
+done
+
+
 %files
 %defattr(-,root,root,-)
 %{_bindir}/qemu-*-dynamic
 %{_sbindir}/qemu-binfmt-conf.sh
+%{_exec_prefix}/lib/binfmt.d/qemu-*-dynamic.conf
 
 %package common
 Summary:  Universal CPU emulator (common utilities)
@@ -133,6 +147,7 @@ This package provides common qemu utilities.
 %{_bindir}/ivshmem-client
 %{_bindir}/ivshmem-server
 %{_bindir}/qemu-edid
+%{_bindir}/elf2dmp
 
 %package static
 Summary:  Universal CPU emulator (static userspace emulators)
@@ -145,3 +160,4 @@ This package provides static builds of userspace CPU emulators.
 %files static
 %defattr(-,root,root,-)
 %{_bindir}/qemu-*-static
+%{_exec_prefix}/lib/binfmt.d/qemu-*-static.conf
