@@ -1,0 +1,161 @@
+From af22522441d40d8c1225fd31ac6d39564dd6016a Mon Sep 17 00:00:00 2001
+From: Juergen Gross <jgross@suse.com>
+Date: Mon, 13 Jun 2016 11:12:21 +0200
+Subject: [PATCH] xen: move xen_sysdev to xen_backend.c
+
+Commit 9432e53a5bc88681b2d3aec4dac9db07c5476d1b added xen_sysdev as a
+system device to serve as an anchor for removable virtual buses. This
+introduced a build failure for non-x86 builds with CONFIG_XEN_BACKEND
+set, as xen_sysdev was defined in a x86 specific file while being
+consumed in an architecture independent source.
+
+Move the xen_sysdev definition and initialization to xen_backend.c to
+avoid the build failure.
+
+Signed-off-by: Juergen Gross <jgross@suse.com>
+Reviewed-by: Anthony PERARD <anthony.perard@citrix.com>
+Acked-by: Stefano Stabellini <sstabellini@kernel.org>
+Signed-off-by: Stefano Stabellini <sstabellini@kernel.org>
+---
+ hw/xen/xen_backend.c      | 41 +++++++++++++++++++++++++++++++++++++++++
+ hw/xenpv/xen_machine_pv.c | 40 ----------------------------------------
+ 2 files changed, 41 insertions(+), 40 deletions(-)
+
+diff --git a/hw/xen/xen_backend.c b/hw/xen/xen_backend.c
+index c63f9df38b..6e52474217 100644
+--- a/hw/xen/xen_backend.c
++++ b/hw/xen/xen_backend.c
+@@ -27,12 +27,17 @@
+ #include <sys/signal.h>
+ 
+ #include "hw/hw.h"
++#include "hw/sysbus.h"
+ #include "sysemu/char.h"
+ #include "qemu/log.h"
+ #include "hw/xen/xen_backend.h"
+ 
+ #include <xen/grant_table.h>
+ 
++#define TYPE_XENSYSDEV "xensysdev"
++
++DeviceState *xen_sysdev;
++
+ /* ------------------------------------------------------------- */
+ 
+ /* public */
+@@ -763,6 +768,10 @@ int xen_be_init(void)
+         /* Check if xen_init() have been called */
+         goto err;
+     }
++
++    xen_sysdev = qdev_create(NULL, TYPE_XENSYSDEV);
++    qdev_init_nofail(xen_sysdev);
++
+     return 0;
+ 
+ err:
+@@ -863,3 +872,35 @@ void xen_be_printf(struct XenDevice *xendev, int msg_level, const char *fmt, ...
+     }
+     qemu_log_flush();
+ }
++
++static int xen_sysdev_init(SysBusDevice *dev)
++{
++    return 0;
++}
++
++static Property xen_sysdev_properties[] = {
++    {/* end of property list */},
++};
++
++static void xen_sysdev_class_init(ObjectClass *klass, void *data)
++{
++    DeviceClass *dc = DEVICE_CLASS(klass);
++    SysBusDeviceClass *k = SYS_BUS_DEVICE_CLASS(klass);
++
++    k->init = xen_sysdev_init;
++    dc->props = xen_sysdev_properties;
++}
++
++static const TypeInfo xensysdev_info = {
++    .name          = TYPE_XENSYSDEV,
++    .parent        = TYPE_SYS_BUS_DEVICE,
++    .instance_size = sizeof(SysBusDevice),
++    .class_init    = xen_sysdev_class_init,
++};
++
++static void xenbe_register_types(void)
++{
++    type_register_static(&xensysdev_info);
++}
++
++type_init(xenbe_register_types);
+diff --git a/hw/xenpv/xen_machine_pv.c b/hw/xenpv/xen_machine_pv.c
+index f68cf48a29..48f725c9cd 100644
+--- a/hw/xenpv/xen_machine_pv.c
++++ b/hw/xenpv/xen_machine_pv.c
+@@ -25,15 +25,10 @@
+ #include "qemu/osdep.h"
+ #include "hw/hw.h"
+ #include "hw/boards.h"
+-#include "hw/sysbus.h"
+ #include "hw/xen/xen_backend.h"
+ #include "xen_domainbuild.h"
+ #include "sysemu/block-backend.h"
+ 
+-#define TYPE_XENSYSDEV "xensysdev"
+-
+-DeviceState *xen_sysdev;
+-
+ static void xen_init_pv(MachineState *machine)
+ {
+     DriveInfo *dinfo;
+@@ -72,9 +67,6 @@ static void xen_init_pv(MachineState *machine)
+         break;
+     }
+ 
+-    xen_sysdev = qdev_create(NULL, TYPE_XENSYSDEV);
+-    qdev_init_nofail(xen_sysdev);
+-
+     xen_be_register("console", &xen_console_ops);
+     xen_be_register("vkbd", &xen_kbdmouse_ops);
+     xen_be_register("vfb", &xen_framebuffer_ops);
+@@ -112,38 +104,6 @@ static void xen_init_pv(MachineState *machine)
+     xen_init_display(xen_domid);
+ }
+ 
+-static int xen_sysdev_init(SysBusDevice *dev)
+-{
+-    return 0;
+-}
+-
+-static Property xen_sysdev_properties[] = {
+-    {/* end of property list */},
+-};
+-
+-static void xen_sysdev_class_init(ObjectClass *klass, void *data)
+-{
+-    DeviceClass *dc = DEVICE_CLASS(klass);
+-    SysBusDeviceClass *k = SYS_BUS_DEVICE_CLASS(klass);
+-
+-    k->init = xen_sysdev_init;
+-    dc->props = xen_sysdev_properties;
+-}
+-
+-static const TypeInfo xensysdev_info = {
+-    .name          = TYPE_XENSYSDEV,
+-    .parent        = TYPE_SYS_BUS_DEVICE,
+-    .instance_size = sizeof(SysBusDevice),
+-    .class_init    = xen_sysdev_class_init,
+-};
+-
+-static void xenpv_register_types(void)
+-{
+-    type_register_static(&xensysdev_info);
+-}
+-
+-type_init(xenpv_register_types);
+-
+ static void xenpv_machine_init(MachineClass *mc)
+ {
+     mc->desc = "Xen Para-virtualized PC";

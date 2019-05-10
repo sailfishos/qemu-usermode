@@ -1,0 +1,28 @@
+From da53460f84e65cd080a7897aacc68ed50cc22a30 Mon Sep 17 00:00:00 2001
+From: Bruce Rogers <brogers@suse.com>
+Date: Mon, 19 Jun 2017 14:48:02 -0600
+Subject: [PATCH] 9pfs: local: remove: use correct path component
+
+Commit a0e640a8 introduced a path processing error.
+Pass fstatat the dirpath based path component instead
+of the entire path.
+
+[BR: BSC#1045035]
+Signed-off-by: Bruce Rogers <brogers@suse.com>
+---
+ hw/9pfs/9p-local.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/hw/9pfs/9p-local.c b/hw/9pfs/9p-local.c
+index f120b37d8a..1351b1364f 100644
+--- a/hw/9pfs/9p-local.c
++++ b/hw/9pfs/9p-local.c
+@@ -1043,7 +1043,7 @@ static int local_remove(FsContext *ctx, const char *path)
+         goto out;
+     }
+ 
+-    if (fstatat(dirfd, path, &stbuf, AT_SYMLINK_NOFOLLOW) < 0) {
++    if (fstatat(dirfd, name, &stbuf, AT_SYMLINK_NOFOLLOW) < 0) {
+         goto err_out;
+     }
+ 

@@ -1,0 +1,32 @@
+From 0c8f4b44b5cf0121805f61cc8f4f6e0c9ba5688d Mon Sep 17 00:00:00 2001
+From: P J P <ppandit@redhat.com>
+Date: Tue, 25 Apr 2017 07:07:00 -0600
+Subject: [PATCH] vmw_pvscsi: check message ring page count at initialisation
+
+Vmware Paravirtual SCSI emulation uses command descriptors to
+process SCSI commands. These come with their message ring buffers.
+A guest could set the message ring page count to an arbitrary value
+resulting in infinite loop. Add check to avoid it.
+
+Reported-by: YY Z <bigbird475958471@gmail.com>
+Signed-off-by: P J P <ppandit@redhat.com>
+(cherry picked from commit f68826989cd4d1217797251339579c57b3c0934e)
+[BR: BSC#1036211 CVE-2017-8112]
+Signed-off-by: Bruce Rogers <brogers@suse.com>
+---
+ hw/scsi/vmw_pvscsi.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/hw/scsi/vmw_pvscsi.c b/hw/scsi/vmw_pvscsi.c
+index a13e72c9db..3334d1b314 100644
+--- a/hw/scsi/vmw_pvscsi.c
++++ b/hw/scsi/vmw_pvscsi.c
+@@ -203,7 +203,7 @@ pvscsi_ring_init_msg(PVSCSIRingInfo *m, PVSCSICmdDescSetupMsgRing *ri)
+     uint32_t len_log2;
+     uint32_t ring_size;
+ 
+-    if (ri->numPages > PVSCSI_SETUP_MSG_RING_MAX_NUM_PAGES) {
++    if (!ri->numPages || ri->numPages > PVSCSI_SETUP_MSG_RING_MAX_NUM_PAGES) {
+         return -1;
+     }
+     ring_size = ri->numPages * PVSCSI_MAX_NUM_MSG_ENTRIES_PER_PAGE;

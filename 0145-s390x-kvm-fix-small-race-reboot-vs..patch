@@ -1,0 +1,34 @@
+From 86361dee5eb260eef4ac912c3b315f1ed53c14dd Mon Sep 17 00:00:00 2001
+From: Christian Borntraeger <borntraeger@de.ibm.com>
+Date: Tue, 24 Jan 2017 22:17:47 +0100
+Subject: [PATCH] s390x/kvm: fix small race reboot vs. cmma
+
+Right now we reset all devices before we reset the cmma states.  This
+can result in the host kernel discarding guest pages that were
+previously in the unused state but already contain a bios or a -kernel
+file before the cmma reset has finished.  This race results in random
+guest crashes or hangs during very early reboot.
+
+Fixes: 1cd4e0f6f0a6 ("s390x/cmma: clean up cmma reset")
+Cc: qemu-stable@nongnu.org
+Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
+(cherry picked from commit 1a0e4c8b02ea510508970c333ee610a90b921cbb)
+Signed-off-by: Bruce Rogers <brogers@suse.com>
+---
+ hw/s390x/s390-virtio.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/hw/s390x/s390-virtio.c b/hw/s390x/s390-virtio.c
+index 544c61643d..a353794154 100644
+--- a/hw/s390x/s390-virtio.c
++++ b/hw/s390x/s390-virtio.c
+@@ -200,8 +200,8 @@ void s390_machine_reset(void)
+ {
+     S390CPU *ipl_cpu = S390_CPU(qemu_get_cpu(0));
+ 
+-    qemu_devices_reset();
+     s390_cmma_reset();
++    qemu_devices_reset();
+     s390_crypto_reset();
+ 
+     /* all cpus are stopped - configure and start the ipl cpu only */

@@ -1,0 +1,100 @@
+From d5f5cbf72396152324bf4565ffbbaecf469cae91 Mon Sep 17 00:00:00 2001
+From: Gerd Hoffmann <kraxel@redhat.com>
+Date: Mon, 6 Feb 2017 13:21:09 +0100
+Subject: [PATCH] xhci: apply limits to loops
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Limits should be big enough that normal guest should not hit it.
+Add a tracepoint to log them, just in case.  Also, while being
+at it, log the existing link trb limit too.
+
+Reported-by: 李强 <liqiang6-s@360.cn>
+Signed-off-by: Gerd Hoffmann <kraxel@redhat.com>
+Message-id: 1486383669-6421-1-git-send-email-kraxel@redhat.com
+(cherry picked from commit f89b60f6e5fee3923bedf80e82b4e5efc1bb156b)
+[BR: BSC#1025109 CVE-2017-5973]
+Signed-off-by: Bruce Rogers <brogers@suse.com>
+
+Conflicts:
+	hw/usb/hcd-xhci.c
+	hw/usb/trace-events
+---
+ hw/usb/hcd-xhci.c | 15 ++++++++++++++-
+ trace-events      |  1 +
+ 2 files changed, 15 insertions(+), 1 deletion(-)
+
+diff --git a/hw/usb/hcd-xhci.c b/hw/usb/hcd-xhci.c
+index 4e9dea52cf..74ae2dc313 100644
+--- a/hw/usb/hcd-xhci.c
++++ b/hw/usb/hcd-xhci.c
+@@ -54,6 +54,8 @@
+ #define ER_FULL_HACK
+ 
+ #define TRB_LINK_LIMIT  4
++#define COMMAND_LIMIT   256
++#define TRANSFER_LIMIT  256
+ 
+ #define LEN_CAP         0x40
+ #define LEN_OPER        (0x400 + 0x10 * MAXPORTS)
+@@ -1029,6 +1031,7 @@ static TRBType xhci_ring_fetch(XHCIState *xhci, XHCIRing *ring, XHCITRB *trb,
+             return type;
+         } else {
+             if (++link_cnt > TRB_LINK_LIMIT) {
++                trace_usb_xhci_enforced_limit("trb-link");
+                 return 0;
+             }
+             ring->dequeue = xhci_mask64(trb->parameter);
+@@ -2101,6 +2104,7 @@ static void xhci_kick_ep(XHCIState *xhci, unsigned int slotid,
+     XHCIRing *ring;
+     USBEndpoint *ep = NULL;
+     uint64_t mfindex;
++    unsigned int count = 0;
+     int length;
+     int i;
+ 
+@@ -2238,6 +2242,10 @@ static void xhci_kick_ep(XHCIState *xhci, unsigned int slotid,
+             epctx->retry = xfer;
+             break;
+         }
++        if (count++ > TRANSFER_LIMIT) {
++            trace_usb_xhci_enforced_limit("transfers");
++            break;
++        }
+     }
+ 
+     ep = xhci_epid_to_usbep(xhci, slotid, epid);
+@@ -2708,7 +2716,7 @@ static void xhci_process_commands(XHCIState *xhci)
+     TRBType type;
+     XHCIEvent event = {ER_COMMAND_COMPLETE, CC_SUCCESS};
+     dma_addr_t addr;
+-    unsigned int i, slotid = 0;
++    unsigned int i, slotid = 0, count = 0;
+ 
+     DPRINTF("xhci_process_commands()\n");
+     if (!xhci_running(xhci)) {
+@@ -2822,6 +2830,11 @@ static void xhci_process_commands(XHCIState *xhci)
+         }
+         event.slotid = slotid;
+         xhci_event(xhci, &event, 0);
++
++        if (count++ > COMMAND_LIMIT) {
++            trace_usb_xhci_enforced_limit("commands");
++            return;
++        }
+     }
+ }
+ 
+diff --git a/trace-events b/trace-events
+index 8350743878..9f3f2af0d8 100644
+--- a/trace-events
++++ b/trace-events
+@@ -489,6 +489,7 @@ usb_xhci_xfer_retry(void *xfer) "%p"
+ usb_xhci_xfer_success(void *xfer, uint32_t bytes) "%p: len %d"
+ usb_xhci_xfer_error(void *xfer, uint32_t ret) "%p: ret %d"
+ usb_xhci_unimplemented(const char *item, int nr) "%s (0x%x)"
++usb_xhci_enforced_limit(const char *item) "%s"
+ 
+ # hw/usb/desc.c
+ usb_desc_device(int addr, int len, int ret) "dev %d query device, len %d, ret %d"

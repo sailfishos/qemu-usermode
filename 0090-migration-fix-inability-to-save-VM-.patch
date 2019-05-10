@@ -1,0 +1,63 @@
+From 1ffa3dbe9ea375c525dca4d72c1c3852ba2c0f7a Mon Sep 17 00:00:00 2001
+From: "Denis V. Lunev" <den@openvz.org>
+Date: Wed, 15 Jun 2016 18:06:43 +0300
+Subject: [PATCH] migration: fix inability to save VM after snapshot
+
+The following sequence of operations fails:
+    virsh start vm
+    virsh snapshot-create vm
+    virshh save vm --file file
+with the following error
+    error: Failed to save domain vm to file
+    error: internal error: unable to execute QEMU command 'migrate':
+    There's a migration process in progress
+
+The problem is that qemu_savevm_state() calls migrate_init() which sets
+migration state to MIGRATION_STATUS_SETUP and never cleaned it up.
+This patch do the job.
+
+Signed-off-by: Denis V. Lunev <den@openvz.org>
+Reviewed-by: Dr. David Alan Gilbert <dgilbert@redhat.com>
+CC: Juan Quintela <quintela@redhat.com>
+CC: Amit Shah <amit.shah@redhat.com>
+Message-Id: <1466003203-26263-1-git-send-email-den@openvz.org>
+Signed-off-by: Amit Shah <amit.shah@redhat.com>
+(cherry picked from commit 6dcf66681aea2a371ddd63770bf80615652f5c94)
+Signed-off-by: Alexander Graf <agraf@suse.de>
+---
+ migration/savevm.c | 12 +++++++++++-
+ 1 file changed, 11 insertions(+), 1 deletion(-)
+
+diff --git a/migration/savevm.c b/migration/savevm.c
+index 834664936d..a2f9df5ec4 100644
+--- a/migration/savevm.c
++++ b/migration/savevm.c
+@@ -1167,10 +1167,12 @@ static int qemu_savevm_state(QEMUFile *f, Error **errp)
+         .shared = 0
+     };
+     MigrationState *ms = migrate_init(&params);
++    MigrationStatus status;
+     ms->to_dst_file = f;
+ 
+     if (migration_is_blocked(errp)) {
+-        return -EINVAL;
++        ret = -EINVAL;
++        goto done;
+     }
+ 
+     qemu_mutex_unlock_iothread();
+@@ -1193,6 +1195,14 @@ static int qemu_savevm_state(QEMUFile *f, Error **errp)
+     if (ret != 0) {
+         error_setg_errno(errp, -ret, "Error while writing VM state");
+     }
++
++done:
++    if (ret != 0) {
++        status = MIGRATION_STATUS_FAILED;
++    } else {
++        status = MIGRATION_STATUS_COMPLETED;
++    }
++    migrate_set_state(&ms->state, MIGRATION_STATUS_SETUP, status);
+     return ret;
+ }
+ 

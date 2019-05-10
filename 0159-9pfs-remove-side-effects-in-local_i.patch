@@ -1,0 +1,73 @@
+From 102c55090f856050f32e5b3b3c090fd8828217e8 Mon Sep 17 00:00:00 2001
+From: Greg Kurz <groug@kaod.org>
+Date: Sun, 26 Feb 2017 23:41:48 +0100
+Subject: [PATCH] 9pfs: remove side-effects in local_init()
+
+If this function fails, it should not modify *ctx.
+
+Signed-off-by: Greg Kurz <groug@kaod.org>
+Reviewed-by: Stefan Hajnoczi <stefanha@redhat.com>
+(cherry picked from commit 00c90bd1c2ff6aabb9ca948a254ba044a403e399)
+[BR: Fix and/or infrastructure for BSC#1020427 CVE-2016-9602]
+Signed-off-by: Bruce Rogers <brogers@suse.com>
+---
+ hw/9pfs/9p-local.c | 37 +++++++++++++++++++------------------
+ 1 file changed, 19 insertions(+), 18 deletions(-)
+
+diff --git a/hw/9pfs/9p-local.c b/hw/9pfs/9p-local.c
+index 16f45f4854..92896ad898 100644
+--- a/hw/9pfs/9p-local.c
++++ b/hw/9pfs/9p-local.c
+@@ -1170,9 +1170,25 @@ static int local_ioc_getversion(FsContext *ctx, V9fsPath *path,
+ 
+ static int local_init(FsContext *ctx)
+ {
+-    int err = 0;
+     struct statfs stbuf;
+ 
++#ifdef FS_IOC_GETVERSION
++    /*
++     * use ioc_getversion only if the ioctl is definied
++     */
++    if (statfs(ctx->fs_root, &stbuf) < 0) {
++        return -1;
++    }
++    switch (stbuf.f_type) {
++    case EXT2_SUPER_MAGIC:
++    case BTRFS_SUPER_MAGIC:
++    case REISERFS_SUPER_MAGIC:
++    case XFS_SUPER_MAGIC:
++        ctx->exops.get_st_gen = local_ioc_getversion;
++        break;
++    }
++#endif
++
+     if (ctx->export_flags & V9FS_SM_PASSTHROUGH) {
+         ctx->xops = passthrough_xattr_ops;
+     } else if (ctx->export_flags & V9FS_SM_MAPPED) {
+@@ -1187,23 +1203,8 @@ static int local_init(FsContext *ctx)
+         ctx->xops = passthrough_xattr_ops;
+     }
+     ctx->export_flags |= V9FS_PATHNAME_FSCONTEXT;
+-#ifdef FS_IOC_GETVERSION
+-    /*
+-     * use ioc_getversion only if the iocl is definied
+-     */
+-    err = statfs(ctx->fs_root, &stbuf);
+-    if (!err) {
+-        switch (stbuf.f_type) {
+-        case EXT2_SUPER_MAGIC:
+-        case BTRFS_SUPER_MAGIC:
+-        case REISERFS_SUPER_MAGIC:
+-        case XFS_SUPER_MAGIC:
+-            ctx->exops.get_st_gen = local_ioc_getversion;
+-            break;
+-        }
+-    }
+-#endif
+-    return err;
++
++    return 0;
+ }
+ 
+ static int local_parse_opts(QemuOpts *opts, struct FsDriverEntry *fse)

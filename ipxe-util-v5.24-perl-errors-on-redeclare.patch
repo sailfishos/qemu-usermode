@@ -1,0 +1,33 @@
+From 8eed6cfa2540976fab0e6ce93c82f413cf3f4e5e Mon Sep 17 00:00:00 2001
+From: Bruce Rogers <brogers@suse.com>
+Date: Wed, 1 Jun 2016 13:00:46 -0600
+Subject: [PATCH] util: v5.24 perl errors on redeclare
+
+I get this error using perl v5.24:
+Can't redeclare "my" in "my" at ./util/parserom.pl
+line 160, near ", "
+
+From what I can gather, we don't need those additional
+"my"'s in the statement.
+
+Signed-off-by: Bruce Rogers <brogers@suse.com>
+---
+ src/util/parserom.pl | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/util/parserom.pl b/src/util/parserom.pl
+index 28df606..5a849a5 100755
+--- a/src/util/parserom.pl
++++ b/src/util/parserom.pl
+@@ -157,7 +157,7 @@ sub process_isa_rom {
+ 
+ # Output Makefile rules for the specified ROM declarations
+ sub print_make_rules {
+-    my ( $state, my $image, my $desc, my $vendor, my $device, my $dup ) = @_;
++    my ( $state, $image, $desc, $vendor, $device, $dup ) = @_;
+     unless ( $state->{'is_header_printed'} ) {
+         print "# NIC\t\n";
+         print "# NIC\tfamily\t$state->{family}\n";
+-- 
+1.9.0
+

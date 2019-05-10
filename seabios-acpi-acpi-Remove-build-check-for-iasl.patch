@@ -1,0 +1,42 @@
+From 964c77462b5ab7acd1d4c123c1c13f633ab24b1a Mon Sep 17 00:00:00 2001
+From: Kevin O'Connor <kevin@koconnor.net>
+Date: Tue, 17 Nov 2015 18:52:05 -0500
+Subject: [PATCH 5/5] acpi: Remove build check for iasl
+
+The iasl program is no longer used on a default build.  Do not require
+it to be installed.
+
+Signed-off-by: Kevin O'Connor <kevin@koconnor.net>
+[LY: BSC#997358]
+Signed-off-by: Liang Yan <lyan@suse.com>
+---
+ scripts/test-build.sh | 13 -------------
+ 1 file changed, 13 deletions(-)
+
+diff --git a/scripts/test-build.sh b/scripts/test-build.sh
+index 081f9fd..25cc2f2 100755
+--- a/scripts/test-build.sh
++++ b/scripts/test-build.sh
+@@ -1,19 +1,6 @@
+ #!/bin/sh
+ # Script to test if the build works properly.
+ 
+-# Test IASL is installed.
+-$IASL -h > /dev/null 2>&1
+-if [ $? -ne 0 ]; then
+-    echo "The SeaBIOS project requires the 'iasl' package be installed." >&2
+-    echo "Many Linux distributions have this package." >&2
+-    echo "Try: sudo yum install iasl" >&2
+-    echo "Or: sudo apt-get install iasl" >&2
+-    echo "" >&2
+-    echo "Please install iasl and retry." >&2
+-    echo -1
+-    exit 0
+-fi
+-
+ mkdir -p ${OUT}
+ TMPFILE1=${OUT}/tmp_testcompile1.c
+ TMPFILE1o=${OUT}/tmp_testcompile1.o
+-- 
+2.12.2
+

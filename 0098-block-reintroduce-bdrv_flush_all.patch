@@ -1,0 +1,78 @@
+From 9b0fdea114806ad7416fd6d026b71e1b8c7048bd Mon Sep 17 00:00:00 2001
+From: John Snow <jsnow@redhat.com>
+Date: Thu, 22 Sep 2016 21:45:50 -0400
+Subject: [PATCH] block: reintroduce bdrv_flush_all
+
+Commit fe1a9cbc moved the flush_all routine from the bdrv layer to the
+block-backend layer. In doing so, however, the semantics of the routine
+changed slightly such that flush_all now used blk_flush instead of
+bdrv_flush.
+
+blk_flush can fail if the attached device model reports that it is not
+"available," (i.e. the tray is open.) This changed the semantics of
+flush_all such that it can now fail for e.g. open CDROM drives.
+
+Reintroduce bdrv_flush_all to regain the old semantics without having to
+alter the behavior of blk_flush or blk_flush_all, which are already
+'doing the right thing.'
+
+Signed-off-by: John Snow <jsnow@redhat.com>
+Reviewed-by: Kevin Wolf <kwolf@redhat.com>
+Reviewed-by: Max Reitz <mreitz@redhat.com>
+Acked-by: Fam Zheng <famz@redhat.com>
+Signed-off-by: Kevin Wolf <kwolf@redhat.com>
+(cherry picked from commit 4085f5c7a239567a292876f46cb59d9b19bcf6ac)
+[BR: BSC#1013341 - slight tweak needed in backport]
+Signed-off-by: Bruce Rogers <brogers@suse.com>
+---
+ block/io.c            | 24 ++++++++++++++++++++++++
+ include/block/block.h |  1 +
+ 2 files changed, 25 insertions(+)
+
+diff --git a/block/io.c b/block/io.c
+index 511bc75c42..da1f592925 100644
+--- a/block/io.c
++++ b/block/io.c
+@@ -1481,6 +1481,30 @@ int coroutine_fn bdrv_co_write_zeroes(BlockDriverState *bs,
+                              BDRV_REQ_ZERO_WRITE | flags);
+ }
+ 
++/*
++ * Flush ALL BDSes regardless of if they are reachable via a BlkBackend or not.
++ */
++int bdrv_flush_all(void)
++{
++    BlockDriverState *bs = NULL;
++    int result = 0;
++
++    while ((bs = bdrv_next(bs))) {
++        AioContext *aio_context = bdrv_get_aio_context(bs);
++        int ret;
++
++        aio_context_acquire(aio_context);
++        ret = bdrv_flush(bs);
++        if (ret < 0 && !result) {
++            result = ret;
++        }
++        aio_context_release(aio_context);
++    }
++
++    return result;
++}
++
++
+ typedef struct BdrvCoGetBlockStatusData {
+     BlockDriverState *bs;
+     BlockDriverState *base;
+diff --git a/include/block/block.h b/include/block/block.h
+index 3a731377db..a4e1833f44 100644
+--- a/include/block/block.h
++++ b/include/block/block.h
+@@ -370,6 +370,7 @@ int bdrv_inactivate_all(void);
+ /* Ensure contents are flushed to disk.  */
+ int bdrv_flush(BlockDriverState *bs);
+ int coroutine_fn bdrv_co_flush(BlockDriverState *bs);
++int bdrv_flush_all(void);
+ void bdrv_close_all(void);
+ void bdrv_drain(BlockDriverState *bs);
+ void coroutine_fn bdrv_co_drain(BlockDriverState *bs);

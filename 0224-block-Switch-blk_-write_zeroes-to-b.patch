@@ -1,0 +1,183 @@
+From 2b157b4bb9f9d2f491a7eb3d33d20c12b0c416b3 Mon Sep 17 00:00:00 2001
+From: Eric Blake <eblake@redhat.com>
+Date: Fri, 6 May 2016 10:26:29 -0600
+Subject: [PATCH] block: Switch blk_*write_zeroes() to byte interface
+
+Sector-based blk_write() should die; convert the one-off
+variant blk_write_zeroes() to use an offset/count interface
+instead.  Likewise for blk_co_write_zeroes() and
+blk_aio_write_zeroes().
+
+Signed-off-by: Eric Blake <eblake@redhat.com>
+Signed-off-by: Kevin Wolf <kwolf@redhat.com>
+(cherry picked from commit 983a1600504b1b78242b9da29b0d7018a6eb231d)
+[LM: BSC#1043176]
+Signed-off-by: Lin Ma <lma@suse.com>
+---
+ block/block-backend.c          | 33 +++++++++++----------------------
+ block/parallels.c              |  3 ++-
+ hw/scsi/scsi-disk.c            |  4 ++--
+ include/sysemu/block-backend.h | 12 ++++++------
+ qemu-img.c                     |  3 ++-
+ qemu-io-cmds.c                 |  6 ++----
+ 6 files changed, 25 insertions(+), 36 deletions(-)
+
+diff --git a/block/block-backend.c b/block/block-backend.c
+index 1dd7ec75b6..82e70b9377 100644
+--- a/block/block-backend.c
++++ b/block/block-backend.c
+@@ -816,11 +816,11 @@ int blk_write(BlockBackend *blk, int64_t sector_num, const uint8_t *buf,
+                   blk_write_entry, 0);
+ }
+ 
+-int blk_write_zeroes(BlockBackend *blk, int64_t sector_num,
+-                     int nb_sectors, BdrvRequestFlags flags)
++int blk_write_zeroes(BlockBackend *blk, int64_t offset,
++                     int count, BdrvRequestFlags flags)
+ {
+-    return blk_rw(blk, sector_num, NULL, nb_sectors, blk_write_entry,
+-                  flags | BDRV_REQ_ZERO_WRITE);
++    return blk_prw(blk, offset, NULL, count, blk_write_entry,
++                   flags | BDRV_REQ_ZERO_WRITE);
+ }
+ 
+ static void error_callback_bh(void *opaque)
+@@ -932,18 +932,12 @@ static void blk_aio_write_entry(void *opaque)
+     blk_aio_complete(acb);
+ }
+ 
+-BlockAIOCB *blk_aio_write_zeroes(BlockBackend *blk, int64_t sector_num,
+-                                 int nb_sectors, BdrvRequestFlags flags,
++BlockAIOCB *blk_aio_write_zeroes(BlockBackend *blk, int64_t offset,
++                                 int count, BdrvRequestFlags flags,
+                                  BlockCompletionFunc *cb, void *opaque)
+ {
+-    if (nb_sectors < 0 || nb_sectors > BDRV_REQUEST_MAX_SECTORS) {
+-        return blk_abort_aio_request(blk, cb, opaque, -EINVAL);
+-    }
+-
+-    return blk_aio_prwv(blk, sector_num << BDRV_SECTOR_BITS,
+-                        nb_sectors << BDRV_SECTOR_BITS, NULL,
+-                        blk_aio_write_entry, flags | BDRV_REQ_ZERO_WRITE,
+-                        cb, opaque);
++    return blk_aio_prwv(blk, offset, count, NULL, blk_aio_write_entry,
++                        flags | BDRV_REQ_ZERO_WRITE, cb, opaque);
+ }
+ 
+ int blk_pread(BlockBackend *blk, int64_t offset, void *buf, int count)
+@@ -1446,15 +1440,10 @@ void *blk_aio_get(const AIOCBInfo *aiocb_info, BlockBackend *blk,
+     return qemu_aio_get(aiocb_info, blk_bs(blk), cb, opaque);
+ }
+ 
+-int coroutine_fn blk_co_write_zeroes(BlockBackend *blk, int64_t sector_num,
+-                                     int nb_sectors, BdrvRequestFlags flags)
++int coroutine_fn blk_co_write_zeroes(BlockBackend *blk, int64_t offset,
++                                     int count, BdrvRequestFlags flags)
+ {
+-    if (nb_sectors < 0 || nb_sectors > BDRV_REQUEST_MAX_SECTORS) {
+-        return -EINVAL;
+-    }
+-
+-    return blk_co_pwritev(blk, sector_num << BDRV_SECTOR_BITS,
+-                          nb_sectors << BDRV_SECTOR_BITS, NULL,
++    return blk_co_pwritev(blk, offset, count, NULL,
+                           flags | BDRV_REQ_ZERO_WRITE);
+ }
+ 
+diff --git a/block/parallels.c b/block/parallels.c
+index 2d8bc87e47..cddbfc4012 100644
+--- a/block/parallels.c
++++ b/block/parallels.c
+@@ -516,7 +516,8 @@ static int parallels_create(const char *filename, QemuOpts *opts, Error **errp)
+     if (ret < 0) {
+         goto exit;
+     }
+-    ret = blk_write_zeroes(file, 1, bat_sectors - 1, 0);
++    ret = blk_write_zeroes(file, BDRV_SECTOR_SIZE,
++                           (bat_sectors - 1) << BDRV_SECTOR_BITS, 0);
+     if (ret < 0) {
+         goto exit;
+     }
+diff --git a/hw/scsi/scsi-disk.c b/hw/scsi/scsi-disk.c
+index d1e2f02052..c8b4eec66c 100644
+--- a/hw/scsi/scsi-disk.c
++++ b/hw/scsi/scsi-disk.c
+@@ -1775,8 +1775,8 @@ static void scsi_disk_emulate_write_same(SCSIDiskReq *r, uint8_t *inbuf)
+                          nb_sectors * s->qdev.blocksize,
+                         BLOCK_ACCT_WRITE);
+         r->req.aiocb = blk_aio_write_zeroes(s->qdev.conf.blk,
+-                                r->req.cmd.lba * (s->qdev.blocksize / 512),
+-                                nb_sectors * (s->qdev.blocksize / 512),
++                                r->req.cmd.lba * s->qdev.blocksize,
++                                nb_sectors * s->qdev.blocksize,
+                                 flags, scsi_aio_complete, r);
+         return;
+     }
+diff --git a/include/sysemu/block-backend.h b/include/sysemu/block-backend.h
+index ce7f9ee1cf..c3f7d902b8 100644
+--- a/include/sysemu/block-backend.h
++++ b/include/sysemu/block-backend.h
+@@ -96,10 +96,10 @@ int blk_pread_unthrottled(BlockBackend *blk, int64_t offset, uint8_t *buf,
+                           int count);
+ int blk_write(BlockBackend *blk, int64_t sector_num, const uint8_t *buf,
+               int nb_sectors);
+-int blk_write_zeroes(BlockBackend *blk, int64_t sector_num,
+-                     int nb_sectors, BdrvRequestFlags flags);
+-BlockAIOCB *blk_aio_write_zeroes(BlockBackend *blk, int64_t sector_num,
+-                                 int nb_sectors, BdrvRequestFlags flags,
++int blk_write_zeroes(BlockBackend *blk, int64_t offset,
++                     int count, BdrvRequestFlags flags);
++BlockAIOCB *blk_aio_write_zeroes(BlockBackend *blk, int64_t offset,
++                                 int count, BdrvRequestFlags flags,
+                                  BlockCompletionFunc *cb, void *opaque);
+ int blk_pread(BlockBackend *blk, int64_t offset, void *buf, int count);
+ int blk_pwrite(BlockBackend *blk, int64_t offset, const void *buf, int count,
+@@ -178,8 +178,8 @@ int blk_get_open_flags_from_root_state(BlockBackend *blk);
+ 
+ void *blk_aio_get(const AIOCBInfo *aiocb_info, BlockBackend *blk,
+                   BlockCompletionFunc *cb, void *opaque);
+-int coroutine_fn blk_co_write_zeroes(BlockBackend *blk, int64_t sector_num,
+-                                     int nb_sectors, BdrvRequestFlags flags);
++int coroutine_fn blk_co_write_zeroes(BlockBackend *blk, int64_t offset,
++                                     int count, BdrvRequestFlags flags);
+ int blk_write_compressed(BlockBackend *blk, int64_t sector_num,
+                          const uint8_t *buf, int nb_sectors);
+ int blk_truncate(BlockBackend *blk, int64_t offset);
+diff --git a/qemu-img.c b/qemu-img.c
+index 62df5014c4..a04921686d 100644
+--- a/qemu-img.c
++++ b/qemu-img.c
+@@ -1589,7 +1589,8 @@ static int convert_write(ImgConvertState *s, int64_t sector_num, int nb_sectors,
+             if (s->has_zero_init) {
+                 break;
+             }
+-            ret = blk_write_zeroes(s->target, sector_num, n, 0);
++            ret = blk_write_zeroes(s->target, sector_num << BDRV_SECTOR_BITS,
++                                   n << BDRV_SECTOR_BITS, 0);
+             if (ret < 0) {
+                 return ret;
+             }
+diff --git a/qemu-io-cmds.c b/qemu-io-cmds.c
+index e26e543a07..a3e3982dad 100644
+--- a/qemu-io-cmds.c
++++ b/qemu-io-cmds.c
+@@ -494,8 +494,7 @@ static void coroutine_fn co_write_zeroes_entry(void *opaque)
+ {
+     CoWriteZeroes *data = opaque;
+ 
+-    data->ret = blk_co_write_zeroes(data->blk, data->offset / BDRV_SECTOR_SIZE,
+-                                    data->count / BDRV_SECTOR_SIZE, 0);
++    data->ret = blk_co_write_zeroes(data->blk, data->offset, data->count, 0);
+     data->done = true;
+     if (data->ret < 0) {
+         *data->total = data->ret;
+@@ -1703,8 +1702,7 @@ static int aio_write_f(BlockBackend *blk, int argc, char **argv)
+         }
+ 
+         ctx->qiov.size = count;
+-        blk_aio_write_zeroes(blk, ctx->offset >> 9, count >> 9, 0,
+-                             aio_write_done, ctx);
++        blk_aio_write_zeroes(blk, ctx->offset, count, 0, aio_write_done, ctx);
+     } else {
+         nr_iov = argc - optind;
+         ctx->buf = create_iovec(blk, &ctx->qiov, &argv[optind], nr_iov,

@@ -1,0 +1,32 @@
+From 7373f383eb169347d82ede984f60ed2baab25cff Mon Sep 17 00:00:00 2001
+From: Paolo Bonzini <pbonzini@redhat.com>
+Date: Tue, 3 Jan 2017 18:20:28 +0100
+Subject: [PATCH] scsi-block: fix direction of BYTCHK test for VERIFY commands
+
+The direction is wrong; scsi_block_is_passthrough returns
+false for commands that *can* use sglists.
+
+Reported-by: Zhang Qian <zhangqian@sangfor.com.cn>
+Fixes: 8fdc7839e40f43a426bc7e858cf1dbfe315a3804
+Cc: qemu-stable@nongnu.org
+Signed-off-by: Paolo Bonzini <pbonzini@redhat.com>
+(cherry picked from commit 1f8af0d186abf9ef775a74d41bf2852ed8d59b63)
+[LM: BSC#1043176]
+Signed-off-by: Lin Ma <lma@suse.com>
+---
+ hw/scsi/scsi-disk.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/hw/scsi/scsi-disk.c b/hw/scsi/scsi-disk.c
+index 788312f2ed..8bae9d81cd 100644
+--- a/hw/scsi/scsi-disk.c
++++ b/hw/scsi/scsi-disk.c
+@@ -2689,7 +2689,7 @@ static bool scsi_block_is_passthrough(SCSIDiskState *s, uint8_t *buf)
+          * for the number of logical blocks specified in the length
+          * field).  For other modes, do not use scatter/gather operation.
+          */
+-        if ((buf[1] & 6) != 2) {
++        if ((buf[1] & 6) == 2) {
+             return false;
+         }
+         break;

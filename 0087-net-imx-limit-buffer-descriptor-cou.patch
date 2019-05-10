@@ -1,0 +1,47 @@
+From d42ada5a0265794f413ed67b5934098f791d63e4 Mon Sep 17 00:00:00 2001
+From: P J P <ppandit@redhat.com>
+Date: Mon, 31 Oct 2016 15:58:47 -0600
+Subject: [PATCH] net: imx: limit buffer descriptor count
+
+i.MX Fast Ethernet Controller uses buffer descriptors to manage
+data flow to/fro receive & transmit queues. While transmitting
+packets, it could continue to read buffer descriptors if a buffer
+descriptor has length of zero and has crafted values in bd.flags.
+Set an upper limit to number of buffer descriptors.
+
+Reported-by: Li Qiang <liqiang6-s@360.cn>
+Signed-off-by: Prasad J Pandit <pjp@fedoraproject.org>
+[BR: CVE-2016-7907 BSC#1002549]
+Signed-off-by: Bruce Rogers <brogers@suse.com>
+---
+ hw/net/imx_fec.c | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/hw/net/imx_fec.c b/hw/net/imx_fec.c
+index e60e3380e4..547fa9992d 100644
+--- a/hw/net/imx_fec.c
++++ b/hw/net/imx_fec.c
+@@ -94,6 +94,8 @@ static const VMStateDescription vmstate_imx_fec = {
+ #define PHY_INT_PARFAULT            (1 << 2)
+ #define PHY_INT_AUTONEG_PAGE        (1 << 1)
+ 
++#define IMX_MAX_DESC                1024
++
+ static void imx_fec_update(IMXFECState *s);
+ 
+ /*
+@@ -264,12 +266,12 @@ static void imx_fec_update(IMXFECState *s)
+ 
+ static void imx_fec_do_tx(IMXFECState *s)
+ {
+-    int frame_size = 0;
++    int frame_size = 0, descnt = 0;
+     uint8_t frame[FEC_MAX_FRAME_SIZE];
+     uint8_t *ptr = frame;
+     uint32_t addr = s->tx_descriptor;
+ 
+-    while (1) {
++    while (descnt++ < IMX_MAX_DESC) {
+         IMXFECBufDesc bd;
+         int len;
+ 

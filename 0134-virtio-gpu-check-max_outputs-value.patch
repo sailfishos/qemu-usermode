@@ -1,0 +1,41 @@
+From f647fb551ff7b68091cf61cb7b04f92463698faf Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Marc-Andr=C3=A9=20Lureau?= <marcandre.lureau@redhat.com>
+Date: Thu, 19 May 2016 12:25:57 +0200
+Subject: [PATCH] virtio-gpu: check max_outputs value
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The value must be less than VIRTIO_GPU_MAX_SCANOUT.
+
+Signed-off-by: Marc-André Lureau <marcandre.lureau@redhat.com>
+Message-id: 1463653560-26958-4-git-send-email-marcandre.lureau@redhat.com
+Signed-off-by: Gerd Hoffmann <kraxel@redhat.com>
+---
+ hw/display/virtio-gpu.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/hw/display/virtio-gpu.c b/hw/display/virtio-gpu.c
+index 10e3ae2fab..1a3cdd7459 100644
+--- a/hw/display/virtio-gpu.c
++++ b/hw/display/virtio-gpu.c
+@@ -19,6 +19,7 @@
+ #include "hw/virtio/virtio.h"
+ #include "hw/virtio/virtio-gpu.h"
+ #include "hw/virtio/virtio-bus.h"
++#include "qapi/error.h"
+ 
+ static struct virtio_gpu_simple_resource*
+ virtio_gpu_find_resource(VirtIOGPU *g, uint32_t resource_id);
+@@ -933,6 +934,11 @@ static void virtio_gpu_device_realize(DeviceState *qdev, Error **errp)
+     bool have_virgl;
+     int i;
+ 
++    if (g->conf.max_outputs > VIRTIO_GPU_MAX_SCANOUT) {
++        error_setg(errp, "invalid max_outputs > %d", VIRTIO_GPU_MAX_SCANOUT);
++        return;
++    }
++
+     g->config_size = sizeof(struct virtio_gpu_config);
+     g->virtio_config.num_scanouts = g->conf.max_outputs;
+     virtio_init(VIRTIO_DEVICE(g), "virtio-gpu", VIRTIO_ID_GPU,

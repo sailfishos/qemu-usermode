@@ -1,0 +1,71 @@
+From 7f9426680bd2a02ec009b8fc1c1b2b9b2837681e Mon Sep 17 00:00:00 2001
+From: Gerd Hoffmann <kraxel@redhat.com>
+Date: Thu, 2 Feb 2017 12:36:12 +0100
+Subject: [PATCH] xhci: guard xhci_kick_epctx against recursive calls
+
+Track xhci_kick_epctx processing being active in a variable.  Check the
+variable before calling xhci_kick_epctx from xhci_kick_ep.  Add an
+assert to make sure we don't call recursively into xhci_kick_epctx.
+
+Cc: 1653384@bugs.launchpad.net
+Fixes: 94b037f2a451b3dc855f9f2c346e5049a361bd55
+Reported-by: Fabian Lesniak <fabian@lesniak-it.de>
+Signed-off-by: Gerd Hoffmann <kraxel@redhat.com>
+Message-id: 1486035372-3621-1-git-send-email-kraxel@redhat.com
+Message-id: 1485790607-31399-5-git-send-email-kraxel@redhat.com
+(cherry picked from commit 96d87bdda3919bb16f754b3d3fd1227e1f38f13c)
+[BR: BSC#1042800 CVE-2017-9375]
+Signed-off-by: Bruce Rogers <brogers@suse.com>
+---
+ hw/usb/hcd-xhci.c | 10 +++++++++-
+ 1 file changed, 9 insertions(+), 1 deletion(-)
+
+diff --git a/hw/usb/hcd-xhci.c b/hw/usb/hcd-xhci.c
+index 74ae2dc313..6e97fee783 100644
+--- a/hw/usb/hcd-xhci.c
++++ b/hw/usb/hcd-xhci.c
+@@ -394,6 +394,7 @@ struct XHCIEPContext {
+     dma_addr_t pctx;
+     unsigned int max_psize;
+     uint32_t state;
++    uint32_t kick_active;
+ 
+     /* streams */
+     unsigned int max_pstreams;
+@@ -2108,7 +2109,6 @@ static void xhci_kick_ep(XHCIState *xhci, unsigned int slotid,
+     int length;
+     int i;
+ 
+-    trace_usb_xhci_ep_kick(slotid, epid, streamid);
+     assert(slotid >= 1 && slotid <= xhci->numslots);
+     assert(epid >= 1 && epid <= 31);
+ 
+@@ -2123,6 +2123,12 @@ static void xhci_kick_ep(XHCIState *xhci, unsigned int slotid,
+         return;
+     }
+ 
++    if (epctx->kick_active) {
++        return;
++    }
++    trace_usb_xhci_ep_kick(slotid, epid, streamid);
++    assert(!epctx->kick_active);
++
+     /* If the device has been detached, but the guest has not noticed this
+        yet the 2 above checks will succeed, but we must NOT continue */
+     if (!xhci->slots[slotid - 1].uport ||
+@@ -2190,6 +2196,7 @@ static void xhci_kick_ep(XHCIState *xhci, unsigned int slotid,
+     }
+     assert(ring->dequeue != 0);
+ 
++    epctx->kick_active++;
+     while (1) {
+         XHCITransfer *xfer = &epctx->transfers[epctx->next_xfer];
+         if (xfer->running_async || xfer->running_retry) {
+@@ -2247,6 +2254,7 @@ static void xhci_kick_ep(XHCIState *xhci, unsigned int slotid,
+             break;
+         }
+     }
++    epctx->kick_active--;
+ 
+     ep = xhci_epid_to_usbep(xhci, slotid, epid);
+     if (ep) {

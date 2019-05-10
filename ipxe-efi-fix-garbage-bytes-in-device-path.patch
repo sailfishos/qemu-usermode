@@ -1,0 +1,40 @@
+From 632e57f0f36d9b48f574db273a19e26bf592fc99 Mon Sep 17 00:00:00 2001
+From: Michael Brown <mcb30@ipxe.org>
+Date: Wed, 22 Jun 2016 09:07:20 +0100
+Subject: [PATCH] [efi] Do not copy garbage bytes into SNP device path MAC
+ address
+
+The SNP device path includes the network device's MAC address within
+the MAC_ADDR_DEVICE_PATH.MacAddress field.  We check that the
+link-layer address will fit within this field, and then perform the
+copy using the length of the destination buffer.
+
+At 32 bytes, the MacAddress field is actually larger than the current
+maximum iPXE link-layer address.  The copy therefore overflows the
+source buffer, resulting in trailing garbage bytes being appended to
+the device path's MacAddress.  This is invisible in debug messages,
+since the DevicePathToText protocol will render only the length
+implied by the interface type.
+
+Fix by copying only the actual length of the link-layer address (which
+we have already verified will not overflow the destination buffer).
+
+Debugged-by: Laszlo Ersek <lersek@redhat.com>
+Signed-off-by: Michael Brown <mcb30@ipxe.org>
+---
+ src/interface/efi/efi_snp.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+Index: ipxe/src/interface/efi/efi_snp.c
+===================================================================
+--- ipxe.orig/src/interface/efi/efi_snp.c
++++ ipxe/src/interface/efi/efi_snp.c
+@@ -1049,7 +1049,7 @@ static int efi_snp_probe ( struct net_de
+ 	macpath->Header.SubType = MSG_MAC_ADDR_DP;
+ 	macpath->Header.Length[0] = sizeof ( *macpath );
+ 	memcpy ( &macpath->MacAddress, netdev->ll_addr,
+-		 sizeof ( macpath->MacAddress ) );
++		 netdev->ll_protocol->ll_addr_len );
+ 	macpath->IfType = ntohs ( netdev->ll_protocol->ll_proto );
+ 	memset ( path_end, 0, sizeof ( *path_end ) );
+ 	path_end->Type = END_DEVICE_PATH_TYPE;

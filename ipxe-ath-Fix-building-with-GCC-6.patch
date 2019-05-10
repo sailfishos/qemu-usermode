@@ -1,0 +1,1003 @@
+From 63037bdce4a325e5e1da85ffcdf27b77ac670c01 Mon Sep 17 00:00:00 2001
+From: Michael Brown <mcb30@ipxe.org>
+Date: Wed, 4 May 2016 15:57:44 +0100
+Subject: [PATCH] [ath] Fix building with GCC 6
+
+Signed-off-by: Michael Brown <mcb30@ipxe.org>
+Signed-off-by: Bruce Rogers <brogers@suse.com>
+---
+ src/drivers/net/ath/ath.h                       |  2 -
+ src/drivers/net/ath/ath5k/ath5k.c               | 40 --------------
+ src/drivers/net/ath/ath5k/ath5k_phy.c           |  6 +--
+ src/drivers/net/ath/ath5k/ath5k_reset.c         |  8 ---
+ src/drivers/net/ath/ath9k/ar9002_initvals.h     | 72 ++++++++++++-------------
+ src/drivers/net/ath/ath9k/ar9003_2p2_initvals.h | 40 +++++++-------
+ src/drivers/net/ath/ath9k/ar9340_initvals.h     | 36 ++++++-------
+ src/drivers/net/ath/ath9k/ar9485_initvals.h     | 44 +++++++--------
+ src/drivers/net/ath/ath9k/ath9k_init.c          |  3 +-
+ 9 files changed, 101 insertions(+), 150 deletions(-)
+
+diff --git a/src/drivers/net/ath/ath.h b/src/drivers/net/ath/ath.h
+index 65b97f6..d6a0373 100644
+--- a/src/drivers/net/ath/ath.h
++++ b/src/drivers/net/ath/ath.h
+@@ -101,8 +101,6 @@ static inline u32 get_unaligned_le32(const void *p)
+  */
+ #define	ATH_KEYMAX	        128     /* max key cache size we handle */
+ 
+-static const u8 ath_bcast_mac[ETH_ALEN] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+-
+ struct ath_ani {
+ 	int caldone;
+ 	unsigned int longcal_timer;
+diff --git a/src/drivers/net/ath/ath5k/ath5k.c b/src/drivers/net/ath/ath5k/ath5k.c
+index 92c4ffd..a6a65a2 100644
+--- a/src/drivers/net/ath/ath5k/ath5k.c
++++ b/src/drivers/net/ath/ath5k/ath5k.c
+@@ -85,46 +85,6 @@ static struct pci_device_id ath5k_nics[] = {
+ 	PCI_ROM(0x168c, 0x001d, "ath2417", "Atheros 2417 Nala", AR5K_AR5212),
+ };
+ 
+-/* Known SREVs */
+-static const struct ath5k_srev_name srev_names[] = {
+-	{ "5210",	AR5K_VERSION_MAC,	AR5K_SREV_AR5210 },
+-	{ "5311",	AR5K_VERSION_MAC,	AR5K_SREV_AR5311 },
+-	{ "5311A",	AR5K_VERSION_MAC,	AR5K_SREV_AR5311A },
+-	{ "5311B",	AR5K_VERSION_MAC,	AR5K_SREV_AR5311B },
+-	{ "5211",	AR5K_VERSION_MAC,	AR5K_SREV_AR5211 },
+-	{ "5212",	AR5K_VERSION_MAC,	AR5K_SREV_AR5212 },
+-	{ "5213",	AR5K_VERSION_MAC,	AR5K_SREV_AR5213 },
+-	{ "5213A",	AR5K_VERSION_MAC,	AR5K_SREV_AR5213A },
+-	{ "2413",	AR5K_VERSION_MAC,	AR5K_SREV_AR2413 },
+-	{ "2414",	AR5K_VERSION_MAC,	AR5K_SREV_AR2414 },
+-	{ "5424",	AR5K_VERSION_MAC,	AR5K_SREV_AR5424 },
+-	{ "5413",	AR5K_VERSION_MAC,	AR5K_SREV_AR5413 },
+-	{ "5414",	AR5K_VERSION_MAC,	AR5K_SREV_AR5414 },
+-	{ "2415",	AR5K_VERSION_MAC,	AR5K_SREV_AR2415 },
+-	{ "5416",	AR5K_VERSION_MAC,	AR5K_SREV_AR5416 },
+-	{ "5418",	AR5K_VERSION_MAC,	AR5K_SREV_AR5418 },
+-	{ "2425",	AR5K_VERSION_MAC,	AR5K_SREV_AR2425 },
+-	{ "2417",	AR5K_VERSION_MAC,	AR5K_SREV_AR2417 },
+-	{ "xxxxx",	AR5K_VERSION_MAC,	AR5K_SREV_UNKNOWN },
+-	{ "5110",	AR5K_VERSION_RAD,	AR5K_SREV_RAD_5110 },
+-	{ "5111",	AR5K_VERSION_RAD,	AR5K_SREV_RAD_5111 },
+-	{ "5111A",	AR5K_VERSION_RAD,	AR5K_SREV_RAD_5111A },
+-	{ "2111",	AR5K_VERSION_RAD,	AR5K_SREV_RAD_2111 },
+-	{ "5112",	AR5K_VERSION_RAD,	AR5K_SREV_RAD_5112 },
+-	{ "5112A",	AR5K_VERSION_RAD,	AR5K_SREV_RAD_5112A },
+-	{ "5112B",	AR5K_VERSION_RAD,	AR5K_SREV_RAD_5112B },
+-	{ "2112",	AR5K_VERSION_RAD,	AR5K_SREV_RAD_2112 },
+-	{ "2112A",	AR5K_VERSION_RAD,	AR5K_SREV_RAD_2112A },
+-	{ "2112B",	AR5K_VERSION_RAD,	AR5K_SREV_RAD_2112B },
+-	{ "2413",	AR5K_VERSION_RAD,	AR5K_SREV_RAD_2413 },
+-	{ "5413",	AR5K_VERSION_RAD,	AR5K_SREV_RAD_5413 },
+-	{ "2316",	AR5K_VERSION_RAD,	AR5K_SREV_RAD_2316 },
+-	{ "2317",	AR5K_VERSION_RAD,	AR5K_SREV_RAD_2317 },
+-	{ "5424",	AR5K_VERSION_RAD,	AR5K_SREV_RAD_5424 },
+-	{ "5133",	AR5K_VERSION_RAD,	AR5K_SREV_RAD_5133 },
+-	{ "xxxxx",	AR5K_VERSION_RAD,	AR5K_SREV_UNKNOWN },
+-};
+-
+ #define ATH5K_SPMBL_NO   1
+ #define ATH5K_SPMBL_YES  2
+ #define ATH5K_SPMBL_BOTH 3
+diff --git a/src/drivers/net/ath/ath5k/ath5k_phy.c b/src/drivers/net/ath/ath5k/ath5k_phy.c
+index 7891d39..c2a66a4 100644
+--- a/src/drivers/net/ath/ath5k/ath5k_phy.c
++++ b/src/drivers/net/ath/ath5k/ath5k_phy.c
+@@ -1219,12 +1219,12 @@ static int ath5k_hw_rf5110_calibrate(struct ath5k_hw *ah,
+ 
+ 	/* Update radio registers */
+ 	ath5k_hw_reg_write(ah, (phy_sig & ~(AR5K_PHY_SIG_FIRPWR)) |
+-		AR5K_REG_SM(-1, AR5K_PHY_SIG_FIRPWR), AR5K_PHY_SIG);
++		AR5K_REG_SM(-1U, AR5K_PHY_SIG_FIRPWR), AR5K_PHY_SIG);
+ 
+ 	ath5k_hw_reg_write(ah, (phy_agc & ~(AR5K_PHY_AGCCOARSE_HI |
+ 			AR5K_PHY_AGCCOARSE_LO)) |
+-		AR5K_REG_SM(-1, AR5K_PHY_AGCCOARSE_HI) |
+-		AR5K_REG_SM(-127, AR5K_PHY_AGCCOARSE_LO), AR5K_PHY_AGCCOARSE);
++		AR5K_REG_SM(-1U, AR5K_PHY_AGCCOARSE_HI) |
++		AR5K_REG_SM(-127U, AR5K_PHY_AGCCOARSE_LO), AR5K_PHY_AGCCOARSE);
+ 
+ 	ath5k_hw_reg_write(ah, (phy_sat & ~(AR5K_PHY_ADCSAT_ICNT |
+ 			AR5K_PHY_ADCSAT_THR)) |
+diff --git a/src/drivers/net/ath/ath5k/ath5k_reset.c b/src/drivers/net/ath/ath5k/ath5k_reset.c
+index 2f36a4e..73765a7 100644
+--- a/src/drivers/net/ath/ath5k/ath5k_reset.c
++++ b/src/drivers/net/ath/ath5k/ath5k_reset.c
+@@ -134,14 +134,6 @@ static int ath5k_hw_write_ofdm_timings(struct ath5k_hw *ah,
+ 	return 0;
+ }
+ 
+-
+-/*
+- * index into rates for control rates, we can set it up like this because
+- * this is only used for AR5212 and we know it supports G mode
+- */
+-static const unsigned int control_rates[] =
+-	{ 0, 1, 1, 1, 4, 4, 6, 6, 8, 8, 8, 8 };
+-
+ /**
+  * ath5k_hw_write_rate_duration - fill rate code to duration table
+  *
+diff --git a/src/drivers/net/ath/ath9k/ar9002_initvals.h b/src/drivers/net/ath/ath9k/ar9002_initvals.h
+index d7a5ac0..f9a92c9 100644
+--- a/src/drivers/net/ath/ath9k/ar9002_initvals.h
++++ b/src/drivers/net/ath/ath9k/ar9002_initvals.h
+@@ -16,7 +16,7 @@
+ 
+ FILE_LICENCE ( BSD2 );
+ 
+-static const u32 ar9280Modes_9280_2[][6] = {
++static __unused const u32 ar9280Modes_9280_2[][6] = {
+ 	{0x00001030, 0x00000230, 0x00000460, 0x000002c0, 0x00000160, 0x000001e0},
+ 	{0x00001070, 0x00000168, 0x000002d0, 0x00000318, 0x0000018c, 0x000001e0},
+ 	{0x000010b0, 0x00000e60, 0x00001cc0, 0x00007c70, 0x00003e38, 0x00001180},
+@@ -65,7 +65,7 @@ static const u32 ar9280Modes_9280_2[][6] = {
+ 	{0x00007894, 0x5a508000, 0x5a508000, 0x5a508000, 0x5a508000, 0x5a508000},
+ };
+ 
+-static const u32 ar9280Common_9280_2[][2] = {
++static __unused const u32 ar9280Common_9280_2[][2] = {
+ 	/* Addr      allmodes  */
+ 	{0x0000000c, 0x00000000},
+ 	{0x00000030, 0x00020015},
+@@ -409,7 +409,7 @@ static const u32 ar9280Common_9280_2[][2] = {
+ 	{0x00007898, 0x2a850160},
+ };
+ 
+-static const u32 ar9280Modes_fast_clock_9280_2[][3] = {
++static __unused const u32 ar9280Modes_fast_clock_9280_2[][3] = {
+ 	/* Addr      5G_HT20     5G_HT40   */
+ 	{0x00001030, 0x00000268, 0x000004d0},
+ 	{0x00001070, 0x0000018c, 0x00000318},
+@@ -426,7 +426,7 @@ static const u32 ar9280Modes_fast_clock_9280_2[][3] = {
+ 	{0x00009918, 0x0000000b, 0x00000016},
+ };
+ 
+-static const u32 ar9280Modes_backoff_23db_rxgain_9280_2[][6] = {
++static __unused const u32 ar9280Modes_backoff_23db_rxgain_9280_2[][6] = {
+ 	{0x00009a00, 0x00008184, 0x00008184, 0x00000290, 0x00000290, 0x00000290},
+ 	{0x00009a04, 0x00008188, 0x00008188, 0x00000300, 0x00000300, 0x00000300},
+ 	{0x00009a08, 0x0000818c, 0x0000818c, 0x00000304, 0x00000304, 0x00000304},
+@@ -559,7 +559,7 @@ static const u32 ar9280Modes_backoff_23db_rxgain_9280_2[][6] = {
+ 	{0x0000a848, 0x00001066, 0x00001066, 0x00001055, 0x00001055, 0x00001055},
+ };
+ 
+-static const u32 ar9280Modes_original_rxgain_9280_2[][6] = {
++static __unused const u32 ar9280Modes_original_rxgain_9280_2[][6] = {
+ 	{0x00009a00, 0x00008184, 0x00008184, 0x00008000, 0x00008000, 0x00008000},
+ 	{0x00009a04, 0x00008188, 0x00008188, 0x00008000, 0x00008000, 0x00008000},
+ 	{0x00009a08, 0x0000818c, 0x0000818c, 0x00008000, 0x00008000, 0x00008000},
+@@ -692,7 +692,7 @@ static const u32 ar9280Modes_original_rxgain_9280_2[][6] = {
+ 	{0x0000a848, 0x00001066, 0x00001066, 0x00001063, 0x00001063, 0x00001063},
+ };
+ 
+-static const u32 ar9280Modes_backoff_13db_rxgain_9280_2[][6] = {
++static __unused const u32 ar9280Modes_backoff_13db_rxgain_9280_2[][6] = {
+ 	{0x00009a00, 0x00008184, 0x00008184, 0x00000290, 0x00000290, 0x00000290},
+ 	{0x00009a04, 0x00008188, 0x00008188, 0x00000300, 0x00000300, 0x00000300},
+ 	{0x00009a08, 0x0000818c, 0x0000818c, 0x00000304, 0x00000304, 0x00000304},
+@@ -825,7 +825,7 @@ static const u32 ar9280Modes_backoff_13db_rxgain_9280_2[][6] = {
+ 	{0x0000a848, 0x00001066, 0x00001066, 0x0000105a, 0x0000105a, 0x0000105a},
+ };
+ 
+-static const u32 ar9280Modes_high_power_tx_gain_9280_2[][6] = {
++static __unused const u32 ar9280Modes_high_power_tx_gain_9280_2[][6] = {
+ 	{0x0000a274, 0x0a19e652, 0x0a19e652, 0x0a1aa652, 0x0a1aa652, 0x0a1aa652},
+ 	{0x0000a27c, 0x050739ce, 0x050739ce, 0x050739ce, 0x050739ce, 0x050739ce},
+ 	{0x0000a300, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000},
+@@ -859,7 +859,7 @@ static const u32 ar9280Modes_high_power_tx_gain_9280_2[][6] = {
+ 	{0x00007844, 0xf258a480, 0xf258a480, 0xf258a480, 0xf258a480, 0xf258a480},
+ };
+ 
+-static const u32 ar9280Modes_original_tx_gain_9280_2[][6] = {
++static __unused const u32 ar9280Modes_original_tx_gain_9280_2[][6] = {
+ 	{0x0000a274, 0x0a19c652, 0x0a19c652, 0x0a1aa652, 0x0a1aa652, 0x0a1aa652},
+ 	{0x0000a27c, 0x050701ce, 0x050701ce, 0x050701ce, 0x050701ce, 0x050701ce},
+ 	{0x0000a300, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000},
+@@ -893,7 +893,7 @@ static const u32 ar9280Modes_original_tx_gain_9280_2[][6] = {
+ 	{0x00007844, 0x92592480, 0x92592480, 0x92592480, 0x92592480, 0x92592480},
+ };
+ 
+-static const u32 ar9280PciePhy_clkreq_off_L1_9280[][2] = {
++static __unused const u32 ar9280PciePhy_clkreq_off_L1_9280[][2] = {
+ 	/* Addr      allmodes  */
+ 	{0x00004040, 0x9248fd00},
+ 	{0x00004040, 0x24924924},
+@@ -907,7 +907,7 @@ static const u32 ar9280PciePhy_clkreq_off_L1_9280[][2] = {
+ 	{0x00004044, 0x00000000},
+ };
+ 
+-static const u32 ar9280PciePhy_clkreq_always_on_L1_9280[][2] = {
++static __unused const u32 ar9280PciePhy_clkreq_always_on_L1_9280[][2] = {
+ 	/* Addr      allmodes  */
+ 	{0x00004040, 0x9248fd00},
+ 	{0x00004040, 0x24924924},
+@@ -921,7 +921,7 @@ static const u32 ar9280PciePhy_clkreq_always_on_L1_9280[][2] = {
+ 	{0x00004044, 0x00000000},
+ };
+ 
+-static const u32 ar9285PciePhy_clkreq_always_on_L1_9285[][2] = {
++static __unused const u32 ar9285PciePhy_clkreq_always_on_L1_9285[][2] = {
+ 	/* Addr      allmodes  */
+ 	{0x00004040, 0x9248fd00},
+ 	{0x00004040, 0x24924924},
+@@ -935,7 +935,7 @@ static const u32 ar9285PciePhy_clkreq_always_on_L1_9285[][2] = {
+ 	{0x00004044, 0x00000000},
+ };
+ 
+-static const u32 ar9285PciePhy_clkreq_off_L1_9285[][2] = {
++static __unused const u32 ar9285PciePhy_clkreq_off_L1_9285[][2] = {
+ 	/* Addr      allmodes  */
+ 	{0x00004040, 0x9248fd00},
+ 	{0x00004040, 0x24924924},
+@@ -949,7 +949,7 @@ static const u32 ar9285PciePhy_clkreq_off_L1_9285[][2] = {
+ 	{0x00004044, 0x00000000},
+ };
+ 
+-static const u32 ar9285Modes_9285_1_2[][6] = {
++static __unused const u32 ar9285Modes_9285_1_2[][6] = {
+ 	{0x00001030, 0x00000230, 0x00000460, 0x000002c0, 0x00000160, 0x000001e0},
+ 	{0x00001070, 0x00000168, 0x000002d0, 0x00000318, 0x0000018c, 0x000001e0},
+ 	{0x000010b0, 0x00000e60, 0x00001cc0, 0x00007c70, 0x00003e38, 0x00001180},
+@@ -1254,7 +1254,7 @@ static const u32 ar9285Modes_9285_1_2[][6] = {
+ 	{0x0000a358, 0x7999aa02, 0x7999aa02, 0x7999aa0e, 0x7999aa0e, 0x7999aa0e},
+ };
+ 
+-static const u32 ar9285Common_9285_1_2[][2] = {
++static __unused const u32 ar9285Common_9285_1_2[][2] = {
+ 	/* Addr      allmodes  */
+ 	{0x0000000c, 0x00000000},
+ 	{0x00000030, 0x00020045},
+@@ -1574,7 +1574,7 @@ static const u32 ar9285Common_9285_1_2[][2] = {
+ 	{0x00007870, 0x10142c00},
+ };
+ 
+-static const u32 ar9285Modes_high_power_tx_gain_9285_1_2[][6] = {
++static __unused const u32 ar9285Modes_high_power_tx_gain_9285_1_2[][6] = {
+ 	{0x0000a300, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000},
+ 	{0x0000a304, 0x00000000, 0x00000000, 0x00006200, 0x00006200, 0x00000000},
+ 	{0x0000a308, 0x00000000, 0x00000000, 0x00008201, 0x00008201, 0x00000000},
+@@ -1614,7 +1614,7 @@ static const u32 ar9285Modes_high_power_tx_gain_9285_1_2[][6] = {
+ 	{0x0000a3e0, 0x000000e7, 0x000000e7, 0x000000e7, 0x000000e7, 0x000000e7},
+ };
+ 
+-static const u32 ar9285Modes_original_tx_gain_9285_1_2[][6] = {
++static __unused const u32 ar9285Modes_original_tx_gain_9285_1_2[][6] = {
+ 	{0x0000a300, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000},
+ 	{0x0000a304, 0x00000000, 0x00000000, 0x00009200, 0x00009200, 0x00000000},
+ 	{0x0000a308, 0x00000000, 0x00000000, 0x00010208, 0x00010208, 0x00000000},
+@@ -1654,7 +1654,7 @@ static const u32 ar9285Modes_original_tx_gain_9285_1_2[][6] = {
+ 	{0x0000a3e0, 0x0000039c, 0x0000039c, 0x0000039c, 0x0000039c, 0x0000039c},
+ };
+ 
+-static const u32 ar9285Modes_XE2_0_normal_power[][6] = {
++static __unused const u32 ar9285Modes_XE2_0_normal_power[][6] = {
+ 	{0x0000a300, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000},
+ 	{0x0000a304, 0x00000000, 0x00000000, 0x00009200, 0x00009200, 0x00000000},
+ 	{0x0000a308, 0x00000000, 0x00000000, 0x00010208, 0x00010208, 0x00000000},
+@@ -1694,7 +1694,7 @@ static const u32 ar9285Modes_XE2_0_normal_power[][6] = {
+ 	{0x0000a3e0, 0x0000039c, 0x0000039c, 0x0000039c, 0x0000039c, 0x0000039c},
+ };
+ 
+-static const u32 ar9285Modes_XE2_0_high_power[][6] = {
++static __unused const u32 ar9285Modes_XE2_0_high_power[][6] = {
+ 	{0x0000a300, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000},
+ 	{0x0000a304, 0x00000000, 0x00000000, 0x00006200, 0x00006200, 0x00000000},
+ 	{0x0000a308, 0x00000000, 0x00000000, 0x00008201, 0x00008201, 0x00000000},
+@@ -1734,7 +1734,7 @@ static const u32 ar9285Modes_XE2_0_high_power[][6] = {
+ 	{0x0000a3e0, 0x000000e7, 0x000000e7, 0x000000e7, 0x000000e7, 0x000000e7},
+ };
+ 
+-static const u32 ar9285PciePhy_clkreq_always_on_L1_9285_1_2[][2] = {
++static __unused const u32 ar9285PciePhy_clkreq_always_on_L1_9285_1_2[][2] = {
+ 	/* Addr      allmodes  */
+ 	{0x00004040, 0x9248fd00},
+ 	{0x00004040, 0x24924924},
+@@ -1748,7 +1748,7 @@ static const u32 ar9285PciePhy_clkreq_always_on_L1_9285_1_2[][2] = {
+ 	{0x00004044, 0x00000000},
+ };
+ 
+-static const u32 ar9285PciePhy_clkreq_off_L1_9285_1_2[][2] = {
++static __unused const u32 ar9285PciePhy_clkreq_off_L1_9285_1_2[][2] = {
+ 	/* Addr      allmodes  */
+ 	{0x00004040, 0x9248fd00},
+ 	{0x00004040, 0x24924924},
+@@ -1762,7 +1762,7 @@ static const u32 ar9285PciePhy_clkreq_off_L1_9285_1_2[][2] = {
+ 	{0x00004044, 0x00000000},
+ };
+ 
+-static const u32 ar9287Modes_9287_1_1[][6] = {
++static __unused const u32 ar9287Modes_9287_1_1[][6] = {
+ 	{0x00001030, 0x00000000, 0x00000000, 0x000002c0, 0x00000160, 0x000001e0},
+ 	{0x00001070, 0x00000000, 0x00000000, 0x00000318, 0x0000018c, 0x000001e0},
+ 	{0x000010b0, 0x00000000, 0x00000000, 0x00007c70, 0x00003e38, 0x00001180},
+@@ -1808,7 +1808,7 @@ static const u32 ar9287Modes_9287_1_1[][6] = {
+ 	{0x0000a3d8, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000},
+ };
+ 
+-static const u32 ar9287Common_9287_1_1[][2] = {
++static __unused const u32 ar9287Common_9287_1_1[][2] = {
+ 	/* Addr      allmodes  */
+ 	{0x0000000c, 0x00000000},
+ 	{0x00000030, 0x00020015},
+@@ -2177,21 +2177,21 @@ static const u32 ar9287Common_9287_1_1[][2] = {
+ 	{0x000078b8, 0x2a850160},
+ };
+ 
+-static const u32 ar9287Common_normal_cck_fir_coeff_9287_1_1[][2] = {
++static __unused const u32 ar9287Common_normal_cck_fir_coeff_9287_1_1[][2] = {
+ 	/* Addr      allmodes  */
+ 	{0x0000a1f4, 0x00fffeff},
+ 	{0x0000a1f8, 0x00f5f9ff},
+ 	{0x0000a1fc, 0xb79f6427},
+ };
+ 
+-static const u32 ar9287Common_japan_2484_cck_fir_coeff_9287_1_1[][2] = {
++static __unused const u32 ar9287Common_japan_2484_cck_fir_coeff_9287_1_1[][2] = {
+ 	/* Addr      allmodes  */
+ 	{0x0000a1f4, 0x00000000},
+ 	{0x0000a1f8, 0xefff0301},
+ 	{0x0000a1fc, 0xca9228ee},
+ };
+ 
+-static const u32 ar9287Modes_tx_gain_9287_1_1[][6] = {
++static __unused const u32 ar9287Modes_tx_gain_9287_1_1[][6] = {
+ 	{0x0000a300, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000},
+ 	{0x0000a304, 0x00000000, 0x00000000, 0x00004002, 0x00004002, 0x00004002},
+ 	{0x0000a308, 0x00000000, 0x00000000, 0x00008004, 0x00008004, 0x00008004},
+@@ -2239,7 +2239,7 @@ static const u32 ar9287Modes_tx_gain_9287_1_1[][6] = {
+ 	{0x0000a274, 0x0a180000, 0x0a180000, 0x0a1aa000, 0x0a1aa000, 0x0a1aa000},
+ };
+ 
+-static const u32 ar9287Modes_rx_gain_9287_1_1[][6] = {
++static __unused const u32 ar9287Modes_rx_gain_9287_1_1[][6] = {
+ 	{0x00009a00, 0x00000000, 0x00000000, 0x0000a120, 0x0000a120, 0x0000a120},
+ 	{0x00009a04, 0x00000000, 0x00000000, 0x0000a124, 0x0000a124, 0x0000a124},
+ 	{0x00009a08, 0x00000000, 0x00000000, 0x0000a128, 0x0000a128, 0x0000a128},
+@@ -2500,7 +2500,7 @@ static const u32 ar9287Modes_rx_gain_9287_1_1[][6] = {
+ 	{0x0000a848, 0x00000000, 0x00000000, 0x00001067, 0x00001067, 0x00001067},
+ };
+ 
+-static const u32 ar9287PciePhy_clkreq_always_on_L1_9287_1_1[][2] = {
++static __unused const u32 ar9287PciePhy_clkreq_always_on_L1_9287_1_1[][2] = {
+ 	/* Addr      allmodes  */
+ 	{0x00004040, 0x9248fd00},
+ 	{0x00004040, 0x24924924},
+@@ -2514,7 +2514,7 @@ static const u32 ar9287PciePhy_clkreq_always_on_L1_9287_1_1[][2] = {
+ 	{0x00004044, 0x00000000},
+ };
+ 
+-static const u32 ar9287PciePhy_clkreq_off_L1_9287_1_1[][2] = {
++static __unused const u32 ar9287PciePhy_clkreq_off_L1_9287_1_1[][2] = {
+ 	/* Addr      allmodes  */
+ 	{0x00004040, 0x9248fd00},
+ 	{0x00004040, 0x24924924},
+@@ -2528,7 +2528,7 @@ static const u32 ar9287PciePhy_clkreq_off_L1_9287_1_1[][2] = {
+ 	{0x00004044, 0x00000000},
+ };
+ 
+-static const u32 ar9271Modes_9271[][6] = {
++static __unused const u32 ar9271Modes_9271[][6] = {
+ 	{0x00001030, 0x00000230, 0x00000460, 0x000002c0, 0x00000160, 0x000001e0},
+ 	{0x00001070, 0x00000168, 0x000002d0, 0x00000318, 0x0000018c, 0x000001e0},
+ 	{0x000010b0, 0x00000e60, 0x00001cc0, 0x00007c70, 0x00003e38, 0x00001180},
+@@ -2834,7 +2834,7 @@ static const u32 ar9271Modes_9271[][6] = {
+ 	{0x0000a358, 0x7999aa02, 0x7999aa02, 0x7999aa0e, 0x7999aa0e, 0x7999aa0e},
+ };
+ 
+-static const u32 ar9271Common_9271[][2] = {
++static __unused const u32 ar9271Common_9271[][2] = {
+ 	/* Addr      allmodes  */
+ 	{0x0000000c, 0x00000000},
+ 	{0x00000030, 0x00020045},
+@@ -3163,26 +3163,26 @@ static const u32 ar9271Common_9271[][2] = {
+ 	{0x0000d384, 0xf3307ff0},
+ };
+ 
+-static const u32 ar9271Common_normal_cck_fir_coeff_9271[][2] = {
++static __unused const u32 ar9271Common_normal_cck_fir_coeff_9271[][2] = {
+ 	/* Addr      allmodes  */
+ 	{0x0000a1f4, 0x00fffeff},
+ 	{0x0000a1f8, 0x00f5f9ff},
+ 	{0x0000a1fc, 0xb79f6427},
+ };
+ 
+-static const u32 ar9271Common_japan_2484_cck_fir_coeff_9271[][2] = {
++static __unused const u32 ar9271Common_japan_2484_cck_fir_coeff_9271[][2] = {
+ 	/* Addr      allmodes  */
+ 	{0x0000a1f4, 0x00000000},
+ 	{0x0000a1f8, 0xefff0301},
+ 	{0x0000a1fc, 0xca9228ee},
+ };
+ 
+-static const u32 ar9271Modes_9271_1_0_only[][6] = {
++static __unused const u32 ar9271Modes_9271_1_0_only[][6] = {
+ 	{0x00009910, 0x30002311, 0x30002311, 0x30002311, 0x30002311, 0x30002311},
+ 	{0x00009828, 0x0a020001, 0x0a020001, 0x0a020001, 0x0a020001, 0x0a020001},
+ };
+ 
+-static const u32 ar9271Modes_9271_ANI_reg[][6] = {
++static __unused const u32 ar9271Modes_9271_ANI_reg[][6] = {
+ 	{0x00009850, 0x6d4000e2, 0x6d4000e2, 0x6d4000e2, 0x6d4000e2, 0x6d4000e2},
+ 	{0x0000985c, 0x3139605e, 0x3139605e, 0x3137605e, 0x3137605e, 0x3139605e},
+ 	{0x00009858, 0x7ec84d2e, 0x7ec84d2e, 0x7ec84d2e, 0x7ec84d2e, 0x7ec84d2e},
+@@ -3193,7 +3193,7 @@ static const u32 ar9271Modes_9271_ANI_reg[][6] = {
+ 	{0x000099c0, 0x05eea6d4, 0x05eea6d4, 0x05eea6d4, 0x05eea6d4, 0x05eea6d4},
+ };
+ 
+-static const u32 ar9271Modes_normal_power_tx_gain_9271[][6] = {
++static __unused const u32 ar9271Modes_normal_power_tx_gain_9271[][6] = {
+ 	{0x0000a300, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000},
+ 	{0x0000a304, 0x00000000, 0x00000000, 0x00009200, 0x00009200, 0x00000000},
+ 	{0x0000a308, 0x00000000, 0x00000000, 0x00010208, 0x00010208, 0x00000000},
+@@ -3229,7 +3229,7 @@ static const u32 ar9271Modes_normal_power_tx_gain_9271[][6] = {
+ 	{0x0000a3e0, 0x000003bd, 0x000003bd, 0x000003bd, 0x000003bd, 0x000003bd},
+ };
+ 
+-static const u32 ar9271Modes_high_power_tx_gain_9271[][6] = {
++static __unused const u32 ar9271Modes_high_power_tx_gain_9271[][6] = {
+ 	{0x0000a300, 0x00000000, 0x00000000, 0x00010000, 0x00010000, 0x00000000},
+ 	{0x0000a304, 0x00000000, 0x00000000, 0x00016200, 0x00016200, 0x00000000},
+ 	{0x0000a308, 0x00000000, 0x00000000, 0x00018201, 0x00018201, 0x00000000},
+diff --git a/src/drivers/net/ath/ath9k/ar9003_2p2_initvals.h b/src/drivers/net/ath/ath9k/ar9003_2p2_initvals.h
+index e8ac70d..b1303bb 100644
+--- a/src/drivers/net/ath/ath9k/ar9003_2p2_initvals.h
++++ b/src/drivers/net/ath/ath9k/ar9003_2p2_initvals.h
+@@ -19,7 +19,7 @@
+ 
+ /* AR9003 2.2 */
+ 
+-static const u32 ar9300_2p2_radio_postamble[][5] = {
++static __unused const u32 ar9300_2p2_radio_postamble[][5] = {
+ 	/* Addr      5G_HT20     5G_HT40     2G_HT40     2G_HT20   */
+ 	{0x0001609c, 0x0dd08f29, 0x0dd08f29, 0x0b283f31, 0x0b283f31},
+ 	{0x000160ac, 0xa4653c00, 0xa4653c00, 0x24652800, 0x24652800},
+@@ -32,7 +32,7 @@ static const u32 ar9300_2p2_radio_postamble[][5] = {
+ 	{0x00016940, 0x10804008, 0x10804008, 0x50804008, 0x50804008},
+ };
+ 
+-static const u32 ar9300Modes_lowest_ob_db_tx_gain_table_2p2[][5] = {
++static __unused const u32 ar9300Modes_lowest_ob_db_tx_gain_table_2p2[][5] = {
+ 	/* Addr      5G_HT20     5G_HT40     2G_HT40     2G_HT20   */
+ 	{0x0000a2dc, 0x00033800, 0x00033800, 0x03aaa352, 0x03aaa352},
+ 	{0x0000a2e0, 0x0003c000, 0x0003c000, 0x03ccc584, 0x03ccc584},
+@@ -138,7 +138,7 @@ static const u32 ar9300Modes_lowest_ob_db_tx_gain_table_2p2[][5] = {
+ 	{0x00016868, 0x6db6db6c, 0x6db6db6c, 0x6db6db6c, 0x6db6db6c},
+ };
+ 
+-static const u32 ar9300Modes_fast_clock_2p2[][3] = {
++static __unused const u32 ar9300Modes_fast_clock_2p2[][3] = {
+ 	/* Addr      5G_HT20     5G_HT40   */
+ 	{0x00001030, 0x00000268, 0x000004d0},
+ 	{0x00001070, 0x0000018c, 0x00000318},
+@@ -151,7 +151,7 @@ static const u32 ar9300Modes_fast_clock_2p2[][3] = {
+ 	{0x0000a254, 0x00000898, 0x00001130},
+ };
+ 
+-static const u32 ar9300_2p2_radio_core[][2] = {
++static __unused const u32 ar9300_2p2_radio_core[][2] = {
+ 	/* Addr      allmodes  */
+ 	{0x00016000, 0x36db6db6},
+ 	{0x00016004, 0x6db6db40},
+@@ -295,7 +295,7 @@ static const u32 ar9300_2p2_radio_core[][2] = {
+ 	{0x00016bd4, 0x00000000},
+ };
+ 
+-static const u32 ar9300Common_rx_gain_table_merlin_2p2[][2] = {
++static __unused const u32 ar9300Common_rx_gain_table_merlin_2p2[][2] = {
+ 	/* Addr      allmodes  */
+ 	{0x0000a000, 0x02000101},
+ 	{0x0000a004, 0x02000102},
+@@ -555,7 +555,7 @@ static const u32 ar9300Common_rx_gain_table_merlin_2p2[][2] = {
+ 	{0x0000b1fc, 0x00000776},
+ };
+ 
+-static const u32 ar9300_2p2_mac_postamble[][5] = {
++static __unused const u32 ar9300_2p2_mac_postamble[][5] = {
+ 	/* Addr      5G_HT20     5G_HT40     2G_HT40     2G_HT20   */
+ 	{0x00001030, 0x00000230, 0x00000460, 0x000002c0, 0x00000160},
+ 	{0x00001070, 0x00000168, 0x000002d0, 0x00000318, 0x0000018c},
+@@ -567,12 +567,12 @@ static const u32 ar9300_2p2_mac_postamble[][5] = {
+ 	{0x00008318, 0x00003e80, 0x00007d00, 0x00006880, 0x00003440},
+ };
+ 
+-static const u32 ar9300_2p2_soc_postamble[][5] = {
++static __unused const u32 ar9300_2p2_soc_postamble[][5] = {
+ 	/* Addr      5G_HT20     5G_HT40     2G_HT40     2G_HT20   */
+ 	{0x00007010, 0x00000023, 0x00000023, 0x00000023, 0x00000023},
+ };
+ 
+-static const u32 ar9200_merlin_2p2_radio_core[][2] = {
++static __unused const u32 ar9200_merlin_2p2_radio_core[][2] = {
+ 	/* Addr      allmodes  */
+ 	{0x00007800, 0x00040000},
+ 	{0x00007804, 0xdb005012},
+@@ -614,7 +614,7 @@ static const u32 ar9200_merlin_2p2_radio_core[][2] = {
+ 	{0x00007894, 0x5a108000},
+ };
+ 
+-static const u32 ar9300_2p2_baseband_postamble[][5] = {
++static __unused const u32 ar9300_2p2_baseband_postamble[][5] = {
+ 	/* Addr      5G_HT20     5G_HT40     2G_HT40     2G_HT20   */
+ 	{0x00009810, 0xd00a8005, 0xd00a8005, 0xd00a8011, 0xd00a8011},
+ 	{0x00009820, 0x206a022e, 0x206a022e, 0x206a012e, 0x206a012e},
+@@ -670,7 +670,7 @@ static const u32 ar9300_2p2_baseband_postamble[][5] = {
+ 	{0x0000c284, 0x00000000, 0x00000000, 0x00000150, 0x00000150},
+ };
+ 
+-static const u32 ar9300_2p2_baseband_core[][2] = {
++static __unused const u32 ar9300_2p2_baseband_core[][2] = {
+ 	/* Addr      allmodes  */
+ 	{0x00009800, 0xafe68e30},
+ 	{0x00009804, 0xfd14e000},
+@@ -833,7 +833,7 @@ static const u32 ar9300_2p2_baseband_core[][2] = {
+ 	{0x0000c420, 0x00000000},
+ };
+ 
+-static const u32 ar9300Modes_high_power_tx_gain_table_2p2[][5] = {
++static __unused const u32 ar9300Modes_high_power_tx_gain_table_2p2[][5] = {
+ 	/* Addr      5G_HT20     5G_HT40     2G_HT40     2G_HT20   */
+ 	{0x0000a2dc, 0x0380c7fc, 0x0380c7fc, 0x03aaa352, 0x03aaa352},
+ 	{0x0000a2e0, 0x0000f800, 0x0000f800, 0x03ccc584, 0x03ccc584},
+@@ -939,7 +939,7 @@ static const u32 ar9300Modes_high_power_tx_gain_table_2p2[][5] = {
+ 	{0x00016868, 0x6eb6db6c, 0x6eb6db6c, 0x6eb6db6c, 0x6eb6db6c},
+ };
+ 
+-static const u32 ar9300Modes_high_ob_db_tx_gain_table_2p2[][5] = {
++static __unused const u32 ar9300Modes_high_ob_db_tx_gain_table_2p2[][5] = {
+ 	/* Addr      5G_HT20     5G_HT40     2G_HT40     2G_HT20   */
+ 	{0x0000a2dc, 0x01feee00, 0x01feee00, 0x03aaa352, 0x03aaa352},
+ 	{0x0000a2e0, 0x0000f000, 0x0000f000, 0x03ccc584, 0x03ccc584},
+@@ -1045,7 +1045,7 @@ static const u32 ar9300Modes_high_ob_db_tx_gain_table_2p2[][5] = {
+ 	{0x00016868, 0x6db6db6c, 0x6db6db6c, 0x6db6db6c, 0x6db6db6c},
+ };
+ 
+-static const u32 ar9300Common_rx_gain_table_2p2[][2] = {
++static __unused const u32 ar9300Common_rx_gain_table_2p2[][2] = {
+ 	/* Addr      allmodes  */
+ 	{0x0000a000, 0x00010000},
+ 	{0x0000a004, 0x00030002},
+@@ -1305,7 +1305,7 @@ static const u32 ar9300Common_rx_gain_table_2p2[][2] = {
+ 	{0x0000b1fc, 0x00000196},
+ };
+ 
+-static const u32 ar9300Modes_low_ob_db_tx_gain_table_2p2[][5] = {
++static __unused const u32 ar9300Modes_low_ob_db_tx_gain_table_2p2[][5] = {
+ 	/* Addr      5G_HT20     5G_HT40     2G_HT40     2G_HT20   */
+ 	{0x0000a2dc, 0x00033800, 0x00033800, 0x03aaa352, 0x03aaa352},
+ 	{0x0000a2e0, 0x0003c000, 0x0003c000, 0x03ccc584, 0x03ccc584},
+@@ -1411,7 +1411,7 @@ static const u32 ar9300Modes_low_ob_db_tx_gain_table_2p2[][5] = {
+ 	{0x00016868, 0x6db6db6c, 0x6db6db6c, 0x6db6db6c, 0x6db6db6c},
+ };
+ 
+-static const u32 ar9300_2p2_mac_core[][2] = {
++static __unused const u32 ar9300_2p2_mac_core[][2] = {
+ 	/* Addr      allmodes  */
+ 	{0x00000008, 0x00000000},
+ 	{0x00000030, 0x00020085},
+@@ -1570,7 +1570,7 @@ static const u32 ar9300_2p2_mac_core[][2] = {
+ 	{0x000083d0, 0x000301ff},
+ };
+ 
+-static const u32 ar9300Common_wo_xlna_rx_gain_table_2p2[][2] = {
++static __unused const u32 ar9300Common_wo_xlna_rx_gain_table_2p2[][2] = {
+ 	/* Addr      allmodes  */
+ 	{0x0000a000, 0x00010000},
+ 	{0x0000a004, 0x00030002},
+@@ -1830,7 +1830,7 @@ static const u32 ar9300Common_wo_xlna_rx_gain_table_2p2[][2] = {
+ 	{0x0000b1fc, 0x00000196},
+ };
+ 
+-static const u32 ar9300_2p2_soc_preamble[][2] = {
++static __unused const u32 ar9300_2p2_soc_preamble[][2] = {
+ 	/* Addr      allmodes  */
+ 	{0x000040a4, 0x00a0c1c9},
+ 	{0x00007008, 0x00000000},
+@@ -1840,21 +1840,21 @@ static const u32 ar9300_2p2_soc_preamble[][2] = {
+ 	{0x00007048, 0x00000008},
+ };
+ 
+-static const u32 ar9300PciePhy_pll_on_clkreq_disable_L1_2p2[][2] = {
++static __unused const u32 ar9300PciePhy_pll_on_clkreq_disable_L1_2p2[][2] = {
+ 	/* Addr      allmodes  */
+ 	{0x00004040, 0x0821265e},
+ 	{0x00004040, 0x0008003b},
+ 	{0x00004044, 0x00000000},
+ };
+ 
+-static const u32 ar9300PciePhy_clkreq_enable_L1_2p2[][2] = {
++static __unused const u32 ar9300PciePhy_clkreq_enable_L1_2p2[][2] = {
+ 	/* Addr      allmodes  */
+ 	{0x00004040, 0x08253e5e},
+ 	{0x00004040, 0x0008003b},
+ 	{0x00004044, 0x00000000},
+ };
+ 
+-static const u32 ar9300PciePhy_clkreq_disable_L1_2p2[][2] = {
++static __unused const u32 ar9300PciePhy_clkreq_disable_L1_2p2[][2] = {
+ 	/* Addr      allmodes  */
+ 	{0x00004040, 0x08213e5e},
+ 	{0x00004040, 0x0008003b},
+diff --git a/src/drivers/net/ath/ath9k/ar9340_initvals.h b/src/drivers/net/ath/ath9k/ar9340_initvals.h
+index 815a8af..784080b 100644
+--- a/src/drivers/net/ath/ath9k/ar9340_initvals.h
++++ b/src/drivers/net/ath/ath9k/ar9340_initvals.h
+@@ -17,7 +17,7 @@
+ #ifndef INITVALS_9340_H
+ #define INITVALS_9340_H
+ 
+-static const u32 ar9340_1p0_radio_postamble[][5] = {
++static __unused const u32 ar9340_1p0_radio_postamble[][5] = {
+ 	/*  Addr      5G_HT20     5G_HT40     2G_HT40     2G_HT20  */
+ 	{0x000160ac, 0xa4646800, 0xa4646800, 0xa4646800, 0xa4646800},
+ 	{0x0001610c, 0x08000000, 0x08000000, 0x00000000, 0x00000000},
+@@ -26,7 +26,7 @@ static const u32 ar9340_1p0_radio_postamble[][5] = {
+ 	{0x00016540, 0x10804000, 0x10804000, 0x50804000, 0x50804000},
+ };
+ 
+-static const u32 ar9340Modes_lowest_ob_db_tx_gain_table_1p0[][5] = {
++static __unused const u32 ar9340Modes_lowest_ob_db_tx_gain_table_1p0[][5] = {
+ 	/*   Addr     5G_HT20     5G_HT40     2G_HT40     2G_HT20  */
+ 	{0x0000a410, 0x000050d9, 0x000050d9, 0x000050d9, 0x000050d9},
+ 	{0x0000a500, 0x00000000, 0x00000000, 0x00000000, 0x00000000},
+@@ -99,7 +99,7 @@ static const u32 ar9340Modes_lowest_ob_db_tx_gain_table_1p0[][5] = {
+ 	{0x00016448, 0x24925266, 0x24925266, 0x24925266, 0x24925266},
+ };
+ 
+-static const u32 ar9340Modes_fast_clock_1p0[][3] = {
++static __unused const u32 ar9340Modes_fast_clock_1p0[][3] = {
+ 	/*  Addr      5G_HT20     5G_HT40  */
+ 	{0x00001030, 0x00000268, 0x000004d0},
+ 	{0x00001070, 0x0000018c, 0x00000318},
+@@ -112,7 +112,7 @@ static const u32 ar9340Modes_fast_clock_1p0[][3] = {
+ 	{0x0000a254, 0x00000898, 0x00001130},
+ };
+ 
+-static const u32 ar9340_1p0_radio_core[][2] = {
++static __unused const u32 ar9340_1p0_radio_core[][2] = {
+ 	/*  Addr     allmodes  */
+ 	{0x00016000, 0x36db6db6},
+ 	{0x00016004, 0x6db6db40},
+@@ -218,13 +218,13 @@ static const u32 ar9340_1p0_radio_core[][2] = {
+ 	{0x000167d4, 0x00000000},
+ };
+ 
+-static const u32 ar9340_1p0_radio_core_40M[][2] = {
++static __unused const u32 ar9340_1p0_radio_core_40M[][2] = {
+ 	{0x0001609c, 0x02566f3a},
+ 	{0x000160ac, 0xa4647c00},
+ 	{0x000160b0, 0x01885f5a},
+ };
+ 
+-static const u32 ar9340_1p0_mac_postamble[][5] = {
++static __unused const u32 ar9340_1p0_mac_postamble[][5] = {
+ 	/* Addr       5G_HT20     5G_HT40     2G_HT40    2G_HT20  */
+ 	{0x00001030, 0x00000230, 0x00000460, 0x000002c0, 0x00000160},
+ 	{0x00001070, 0x00000168, 0x000002d0, 0x00000318, 0x0000018c},
+@@ -236,12 +236,12 @@ static const u32 ar9340_1p0_mac_postamble[][5] = {
+ 	{0x00008318, 0x00003e80, 0x00007d00, 0x00006880, 0x00003440},
+ };
+ 
+-static const u32 ar9340_1p0_soc_postamble[][5] = {
++static __unused const u32 ar9340_1p0_soc_postamble[][5] = {
+ 	/*   Addr     5G_HT20     5G_HT40     2G_HT40     2G_HT20  */
+ 	{0x00007010, 0x00000023, 0x00000023, 0x00000023, 0x00000023},
+ };
+ 
+-static const u32 ar9340_1p0_baseband_postamble[][5] = {
++static __unused const u32 ar9340_1p0_baseband_postamble[][5] = {
+ 	/*  Addr      5G_HT20     5G_HT40     2G_HT40     2G_HT20  */
+ 	{0x00009810, 0xd00a8005, 0xd00a8005, 0xd00a8011, 0xd00a8011},
+ 	{0x00009820, 0x206a022e, 0x206a022e, 0x206a022e, 0x206a022e},
+@@ -288,7 +288,7 @@ static const u32 ar9340_1p0_baseband_postamble[][5] = {
+ 	{0x0000b284, 0x00000000, 0x00000000, 0x00000150, 0x00000150},
+ };
+ 
+-static const u32 ar9340_1p0_baseband_core[][2] = {
++static __unused const u32 ar9340_1p0_baseband_core[][2] = {
+ 	/*  Addr     allmodes  */
+ 	{0x00009800, 0xafe68e30},
+ 	{0x00009804, 0xfd14e000},
+@@ -464,7 +464,7 @@ static const u32 ar9340_1p0_baseband_core[][2] = {
+ 	{0x0000b420, 0x00000000},
+ };
+ 
+-static const u32 ar9340Modes_high_power_tx_gain_table_1p0[][5] = {
++static __unused const u32 ar9340Modes_high_power_tx_gain_table_1p0[][5] = {
+ 	/*  Addr      5G_HT20     5G_HT40     2G_HT40     2G_HT20  */
+ 	{0x0000a410, 0x000050d8, 0x000050d8, 0x000050d9, 0x000050d9},
+ 	{0x0000a500, 0x00002220, 0x00002220, 0x00000000, 0x00000000},
+@@ -537,7 +537,7 @@ static const u32 ar9340Modes_high_power_tx_gain_table_1p0[][5] = {
+ 	{0x00016448, 0x24925266, 0x24925266, 0x24925266, 0x24925266},
+ };
+ 
+-static const u32 ar9340Modes_high_ob_db_tx_gain_table_1p0[][5] = {
++static __unused const u32 ar9340Modes_high_ob_db_tx_gain_table_1p0[][5] = {
+ 	/*  Addr       5G_HT20    5G_HT40     2G_HT40     2G_HT20  */
+ 	{0x0000a410, 0x000050d8, 0x000050d8, 0x000050d9, 0x000050d9},
+ 	{0x0000a500, 0x00002220, 0x00002220, 0x00000000, 0x00000000},
+@@ -609,7 +609,7 @@ static const u32 ar9340Modes_high_ob_db_tx_gain_table_1p0[][5] = {
+ 	{0x00016444, 0x03b6d2e4, 0x03b6d2e4, 0x03b6d2e4, 0x03b6d2e4},
+ 	{0x00016448, 0x8e481266, 0x8e481266, 0x8e481266, 0x8e481266},
+ };
+-static const u32 ar9340Modes_ub124_tx_gain_table_1p0[][5] = {
++static __unused const u32 ar9340Modes_ub124_tx_gain_table_1p0[][5] = {
+ 	/*  Addr      5G_HT20      5G_HT40     2G_HT40    2G_HT20  */
+ 	{0x0000a410, 0x000050d8, 0x000050d8, 0x000050d9, 0x000050d9},
+ 	{0x0000a500, 0x00002220, 0x00002220, 0x00000000, 0x00000000},
+@@ -683,7 +683,7 @@ static const u32 ar9340Modes_ub124_tx_gain_table_1p0[][5] = {
+ };
+ 
+ 
+-static const u32 ar9340Common_rx_gain_table_1p0[][2] = {
++static __unused const u32 ar9340Common_rx_gain_table_1p0[][2] = {
+ 	/*   Addr     allmodes */
+ 	{0x0000a000, 0x00010000},
+ 	{0x0000a004, 0x00030002},
+@@ -943,7 +943,7 @@ static const u32 ar9340Common_rx_gain_table_1p0[][2] = {
+ 	{0x0000b1fc, 0x00000196},
+ };
+ 
+-static const u32 ar9340Modes_low_ob_db_tx_gain_table_1p0[][5] = {
++static __unused const u32 ar9340Modes_low_ob_db_tx_gain_table_1p0[][5] = {
+ 	/*  Addr      5G_HT20     5G_HT40     2G_HT40     2G_HT20  */
+ 	{0x0000a410, 0x000050d9, 0x000050d9, 0x000050d9, 0x000050d9},
+ 	{0x0000a500, 0x00000000, 0x00000000, 0x00000000, 0x00000000},
+@@ -1016,7 +1016,7 @@ static const u32 ar9340Modes_low_ob_db_tx_gain_table_1p0[][5] = {
+ 	{0x00016448, 0x24925266, 0x24925266, 0x24925266, 0x24925266},
+ };
+ 
+-static const u32 ar9340Modes_mixed_ob_db_tx_gain_table_1p0[][5] = {
++static __unused const u32 ar9340Modes_mixed_ob_db_tx_gain_table_1p0[][5] = {
+ 	/*  Addr       5G_HT20     5G_HT40     2G_HT40    2G_HT20  */
+ 	{0x0000a410, 0x000050d9, 0x000050d9, 0x000050d9, 0x000050d9},
+ 	{0x0000a500, 0x00000000, 0x00000000, 0x00000000, 0x00000000},
+@@ -1089,7 +1089,7 @@ static const u32 ar9340Modes_mixed_ob_db_tx_gain_table_1p0[][5] = {
+ 	{0x00016448, 0x24927266, 0x24927266, 0x8e482266, 0x8e482266},
+ };
+ 
+-static const u32 ar9340_1p0_mac_core[][2] = {
++static __unused const u32 ar9340_1p0_mac_core[][2] = {
+ 	/*    Addr        allmodes        */
+ 	{0x00000008, 0x00000000},
+ 	{0x00000030, 0x00020085},
+@@ -1253,7 +1253,7 @@ static const u32 ar9340_1p0_mac_core[][2] = {
+ 	{0x000083d0, 0x000301ff},
+ };
+ 
+-static const u32 ar9340Common_wo_xlna_rx_gain_table_1p0[][2] = {
++static __unused const u32 ar9340Common_wo_xlna_rx_gain_table_1p0[][2] = {
+ 	/*    Addr        allmodes        */
+ 	{0x0000a000, 0x00010000},
+ 	{0x0000a004, 0x00030002},
+@@ -1513,7 +1513,7 @@ static const u32 ar9340Common_wo_xlna_rx_gain_table_1p0[][2] = {
+ 	{0x0000b1fc, 0x00000196},
+ };
+ 
+-static const u32 ar9340_1p0_soc_preamble[][2] = {
++static __unused const u32 ar9340_1p0_soc_preamble[][2] = {
+ 	/*    Addr        allmodes        */
+ 	{0x000040a4, 0x00a0c1c9},
+ 	{0x00007008, 0x00000000},
+diff --git a/src/drivers/net/ath/ath9k/ar9485_initvals.h b/src/drivers/net/ath/ath9k/ar9485_initvals.h
+index 611ea6c..c854398 100644
+--- a/src/drivers/net/ath/ath9k/ar9485_initvals.h
++++ b/src/drivers/net/ath/ath9k/ar9485_initvals.h
+@@ -17,7 +17,7 @@
+ #ifndef INITVALS_9485_H
+ #define INITVALS_9485_H
+ 
+-static const u32 ar9485_1_1_mac_core[][2] = {
++static __unused const u32 ar9485_1_1_mac_core[][2] = {
+ 	/*  Addr       allmodes */
+ 	{0x00000008, 0x00000000},
+ 	{0x00000030, 0x00020085},
+@@ -179,7 +179,7 @@ static const u32 ar9485_1_1_mac_core[][2] = {
+ 	{0x000083d0, 0x000301ff},
+ };
+ 
+-static const u32 ar9485_1_1_baseband_core[][2] = {
++static __unused const u32 ar9485_1_1_baseband_core[][2] = {
+ 	/* Addr       allmodes */
+ 	{0x00009800, 0xafe68e30},
+ 	{0x00009804, 0xfd14e000},
+@@ -316,7 +316,7 @@ static const u32 ar9485_1_1_baseband_core[][2] = {
+ 	{0x0000a7dc, 0x00000000},
+ };
+ 
+-static const u32 ar9485Common_1_1[][2] = {
++static __unused const u32 ar9485Common_1_1[][2] = {
+ 	/*  Addr      allmodes */
+ 	{0x00007010, 0x00000022},
+ 	{0x00007020, 0x00000000},
+@@ -324,7 +324,7 @@ static const u32 ar9485Common_1_1[][2] = {
+ 	{0x00007038, 0x000004c2},
+ };
+ 
+-static const u32 ar9485_1_1_baseband_postamble[][5] = {
++static __unused const u32 ar9485_1_1_baseband_postamble[][5] = {
+ 	/* Addr       5G_HT20        5G_HT40       2G_HT40       2G_HT20 */
+ 	{0x00009810, 0xd00a8005, 0xd00a8005, 0xd00a8005, 0xd00a8005},
+ 	{0x00009820, 0x206a002e, 0x206a002e, 0x206a002e, 0x206a002e},
+@@ -369,7 +369,7 @@ static const u32 ar9485_1_1_baseband_postamble[][5] = {
+ 	{0x0000be18, 0x00000000, 0x00000000, 0x00000000, 0x00000000},
+ };
+ 
+-static const u32 ar9485Modes_high_ob_db_tx_gain_1_1[][5] = {
++static __unused const u32 ar9485Modes_high_ob_db_tx_gain_1_1[][5] = {
+ 	/* Addr        5G_HT20       5G_HT40       2G_HT40       2G_HT20 */
+ 	{0x000098bc, 0x00000002, 0x00000002, 0x00000002, 0x00000002},
+ 	{0x0000a410, 0x000050d9, 0x000050d9, 0x000050d8, 0x000050d8},
+@@ -442,7 +442,7 @@ static const u32 ar9485Modes_high_ob_db_tx_gain_1_1[][5] = {
+ 	{0x00016048, 0x6c924260, 0x6c924260, 0x6c924260, 0x6c924260},
+ };
+ 
+-static const u32 ar9485_modes_lowest_ob_db_tx_gain_1_1[][5] = {
++static __unused const u32 ar9485_modes_lowest_ob_db_tx_gain_1_1[][5] = {
+ 	/* Addr        5G_HT20       5G_HT40       2G_HT40       2G_HT20  */
+ 	{0x000098bc, 0x00000002, 0x00000002, 0x00000002, 0x00000002},
+ 	{0x0000a410, 0x000050d9, 0x000050d9, 0x000050d8, 0x000050d8},
+@@ -515,7 +515,7 @@ static const u32 ar9485_modes_lowest_ob_db_tx_gain_1_1[][5] = {
+ 	{0x00016048, 0x6c924260, 0x6c924260, 0x6c924260, 0x6c924260},
+ };
+ 
+-static const u32 ar9485_1_1_radio_postamble[][2] = {
++static __unused const u32 ar9485_1_1_radio_postamble[][2] = {
+ 	/* Addr        allmodes */
+ 	{0x0001609c, 0x0b283f31},
+ 	{0x000160ac, 0x24611800},
+@@ -524,7 +524,7 @@ static const u32 ar9485_1_1_radio_postamble[][2] = {
+ 	{0x00016140, 0x10804008},
+ };
+ 
+-static const u32 ar9485_1_1_mac_postamble[][5] = {
++static __unused const u32 ar9485_1_1_mac_postamble[][5] = {
+ 	/* Addr        5G_HT20       5G_HT40       2G_HT40       2G_HT20 */
+ 	{0x00001030, 0x00000230, 0x00000460, 0x000002c0, 0x00000160},
+ 	{0x00001070, 0x00000168, 0x000002d0, 0x00000318, 0x0000018c},
+@@ -536,7 +536,7 @@ static const u32 ar9485_1_1_mac_postamble[][5] = {
+ 	{0x00008318, 0x00003e80, 0x00007d00, 0x00006880, 0x00003440},
+ };
+ 
+-static const u32 ar9485_1_1_radio_core[][2] = {
++static __unused const u32 ar9485_1_1_radio_core[][2] = {
+ 	/* Addr        allmodes */
+ 	{0x00016000, 0x36db6db6},
+ 	{0x00016004, 0x6db6db40},
+@@ -601,14 +601,14 @@ static const u32 ar9485_1_1_radio_core[][2] = {
+ 	{0x00016c44, 0x12000000},
+ };
+ 
+-static const u32 ar9485_1_1_pcie_phy_pll_on_clkreq_enable_L1[][2] = {
++static __unused const u32 ar9485_1_1_pcie_phy_pll_on_clkreq_enable_L1[][2] = {
+ 	/* Addr        allmodes */
+ 	{0x00018c00, 0x10052e5e},
+ 	{0x00018c04, 0x000801d8},
+ 	{0x00018c08, 0x0000080c},
+ };
+ 
+-static const u32 ar9485Modes_high_power_tx_gain_1_1[][5] = {
++static __unused const u32 ar9485Modes_high_power_tx_gain_1_1[][5] = {
+ 	/* Addr        5G_HT20       5G_HT40       2G_HT40       2G_HT20 */
+ 	{0x000098bc, 0x00000002, 0x00000002, 0x00000002, 0x00000002},
+ 	{0x0000a410, 0x000050d9, 0x000050d9, 0x000050d8, 0x000050d8},
+@@ -681,7 +681,7 @@ static const u32 ar9485Modes_high_power_tx_gain_1_1[][5] = {
+ 	{0x00016048, 0x6c924260, 0x6c924260, 0x6c924260, 0x6c924260},
+ };
+ 
+-static const u32 ar9485_1_1[][2] = {
++static __unused const u32 ar9485_1_1[][2] = {
+ 	/* Addr        allmodes */
+ 	{0x0000a580, 0x00000000},
+ 	{0x0000a584, 0x00000000},
+@@ -701,7 +701,7 @@ static const u32 ar9485_1_1[][2] = {
+ 	{0x0000a5bc, 0x00000000},
+ };
+ 
+-static const u32 ar9485_modes_green_ob_db_tx_gain_1_1[][5] = {
++static __unused const u32 ar9485_modes_green_ob_db_tx_gain_1_1[][5] = {
+ 	/* Addr        5G_HT20       5G_HT40       2G_HT40       2G_HT20 */
+ 	{0x000098bc, 0x00000003, 0x00000003, 0x00000003, 0x00000003},
+ 	{0x0000a410, 0x000050d9, 0x000050d9, 0x000050d8, 0x000050d8},
+@@ -774,14 +774,14 @@ static const u32 ar9485_modes_green_ob_db_tx_gain_1_1[][5] = {
+ 	{0x00016048, 0x6c924260, 0x6c924260, 0x6c924260, 0x6c924260},
+ };
+ 
+-static const u32 ar9485_1_1_pcie_phy_clkreq_disable_L1[][2] = {
++static __unused const u32 ar9485_1_1_pcie_phy_clkreq_disable_L1[][2] = {
+ 	/* Addr        allmodes */
+ 	{0x00018c00, 0x10013e5e},
+ 	{0x00018c04, 0x000801d8},
+ 	{0x00018c08, 0x0000080c},
+ };
+ 
+-static const u32 ar9485_1_1_soc_preamble[][2] = {
++static __unused const u32 ar9485_1_1_soc_preamble[][2] = {
+ 	/* Addr        allmodes */
+ 	{0x00004014, 0xba280400},
+ 	{0x00004090, 0x00aa10aa},
+@@ -793,14 +793,14 @@ static const u32 ar9485_1_1_soc_preamble[][2] = {
+ 	{0x00007048, 0x00000002},
+ };
+ 
+-static const u32 ar9485_1_1_baseband_core_txfir_coeff_japan_2484[][2] = {
++static __unused const u32 ar9485_1_1_baseband_core_txfir_coeff_japan_2484[][2] = {
+ 	/* Addr        allmodes */
+ 	{0x0000a398, 0x00000000},
+ 	{0x0000a39c, 0x6f7f0301},
+ 	{0x0000a3a0, 0xca9228ee},
+ };
+ 
+-static const u32 ar9485Modes_low_ob_db_tx_gain_1_1[][5] = {
++static __unused const u32 ar9485Modes_low_ob_db_tx_gain_1_1[][5] = {
+ 	/* Addr        5G_HT20       5G_HT40       2G_HT40       2G_HT20  */
+ 	{0x000098bc, 0x00000002, 0x00000002, 0x00000002, 0x00000002},
+ 	{0x0000a410, 0x000050d9, 0x000050d9, 0x000050d8, 0x000050d8},
+@@ -873,21 +873,21 @@ static const u32 ar9485Modes_low_ob_db_tx_gain_1_1[][5] = {
+ 	{0x00016048, 0x6c924260, 0x6c924260, 0x6c924260, 0x6c924260},
+ };
+ 
+-static const u32 ar9485_fast_clock_1_1_baseband_postamble[][3] = {
++static __unused const u32 ar9485_fast_clock_1_1_baseband_postamble[][3] = {
+ 	/* Addr        5G_HT2        5G_HT40  */
+ 	{0x00009e00, 0x03721821, 0x03721821},
+ 	{0x0000a230, 0x0000400b, 0x00004016},
+ 	{0x0000a254, 0x00000898, 0x00001130},
+ };
+ 
+-static const u32 ar9485_1_1_pcie_phy_pll_on_clkreq_disable_L1[][2] = {
++static __unused const u32 ar9485_1_1_pcie_phy_pll_on_clkreq_disable_L1[][2] = {
+ 	/* Addr        allmodes  */
+ 	{0x00018c00, 0x10012e5e},
+ 	{0x00018c04, 0x000801d8},
+ 	{0x00018c08, 0x0000080c},
+ };
+ 
+-static const u32 ar9485_common_rx_gain_1_1[][2] = {
++static __unused const u32 ar9485_common_rx_gain_1_1[][2] = {
+ 	/* Addr        allmodes */
+ 	{0x0000a000, 0x00010000},
+ 	{0x0000a004, 0x00030002},
+@@ -1019,14 +1019,14 @@ static const u32 ar9485_common_rx_gain_1_1[][2] = {
+ 	{0x0000a1fc, 0x00000296},
+ };
+ 
+-static const u32 ar9485_1_1_pcie_phy_clkreq_enable_L1[][2] = {
++static __unused const u32 ar9485_1_1_pcie_phy_clkreq_enable_L1[][2] = {
+ 	/* Addr        allmodes */
+ 	{0x00018c00, 0x10053e5e},
+ 	{0x00018c04, 0x000801d8},
+ 	{0x00018c08, 0x0000080c},
+ };
+ 
+-static const u32 ar9485Common_wo_xlna_rx_gain_1_1[][2] = {
++static __unused const u32 ar9485Common_wo_xlna_rx_gain_1_1[][2] = {
+ 	/* Addr        allmodes */
+ 	{0x0000a000, 0x00060005},
+ 	{0x0000a004, 0x00810080},
+diff --git a/src/drivers/net/ath/ath9k/ath9k_init.c b/src/drivers/net/ath/ath9k/ath9k_init.c
+index 03de770..98a0d6d 100644
+--- a/src/drivers/net/ath/ath9k/ath9k_init.c
++++ b/src/drivers/net/ath/ath9k/ath9k_init.c
+@@ -22,6 +22,7 @@ FILE_LICENCE ( BSD2 );
+ #include <ipxe/malloc.h>
+ #include <ipxe/pci_io.h>
+ #include <ipxe/pci.h>
++#include <ipxe/ethernet.h>
+ 
+ #include "ath9k.h"
+ 
+@@ -349,7 +350,7 @@ static void ath9k_init_misc(struct ath_softc *sc)
+ 	ath9k_hw_set_diversity(sc->sc_ah, 1);
+ 	sc->rx.defant = ath9k_hw_getdefantenna(sc->sc_ah);
+ 
+-	memcpy(common->bssidmask, ath_bcast_mac, ETH_ALEN);
++	memcpy(common->bssidmask, eth_broadcast, ETH_ALEN);
+ }
+ 
+ static int ath9k_init_softc(u16 devid, struct ath_softc *sc, u16 subsysid,
+-- 
+1.9.0
+

@@ -1,0 +1,93 @@
+From d796ea228432dd7926b95cf6d8f33c37075f3a65 Mon Sep 17 00:00:00 2001
+From: Ulrich Hecht <uli@suse.de>
+Date: Tue, 14 Apr 2009 16:37:42 +0200
+Subject: [PATCH] block/vmdk: Support creation of SCSI VMDK images in qemu-img
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Signed-off-by: Ulrich Hecht <uli@suse.de>
+[AF: Changed BLOCK_FLAG_SCSI from 8 to 16 for v1.2]
+[AF: Rebased onto upstream VMDK SCSI support]
+[AF: Rebased onto skipping of image creation in v1.7]
+[AF: Simplified in preparation for v1.7.1/v2.0]
+[BR: Rebased onto v2.0]
+[BR: Rebased onto v2.1]
+Signed-off-by: Andreas Färber <afaerber@suse.de>
+Signed-off-by: Bruce Rogers <brogers@suse.com>
+---
+ block/vmdk.c              | 11 ++++++++++-
+ include/block/block_int.h |  2 ++
+ qemu-img.c                |  7 +++++++
+ 3 files changed, 19 insertions(+), 1 deletion(-)
+
+diff --git a/block/vmdk.c b/block/vmdk.c
+index 45f9d3c5b9..ddc24dfe83 100644
+--- a/block/vmdk.c
++++ b/block/vmdk.c
+@@ -1881,13 +1881,16 @@ static int vmdk_create(const char *filename, QemuOpts *opts, Error **errp)
+     if (qemu_opt_get_bool_del(opts, BLOCK_OPT_COMPAT6, false)) {
+         flags |= BLOCK_FLAG_COMPAT6;
+     }
++    if (qemu_opt_get_bool_del(opts, BLOCK_OPT_SCSI, false)) {
++        flags |= BLOCK_FLAG_SCSI;
++    }
+     fmt = qemu_opt_get_del(opts, BLOCK_OPT_SUBFMT);
+     if (qemu_opt_get_bool_del(opts, BLOCK_OPT_ZEROED_GRAIN, false)) {
+         zeroed_grain = true;
+     }
+ 
+     if (!adapter_type) {
+-        adapter_type = g_strdup("ide");
++        adapter_type = g_strdup(flags & BLOCK_FLAG_SCSI ? "lsilogic" : "ide");
+     } else if (strcmp(adapter_type, "ide") &&
+                strcmp(adapter_type, "buslogic") &&
+                strcmp(adapter_type, "lsilogic") &&
+@@ -2310,6 +2313,12 @@ static QemuOptsList vmdk_create_opts = {
+             .help = "Enable efficient zero writes "
+                     "using the zeroed-grain GTE feature"
+         },
++        {
++            .name = BLOCK_OPT_SCSI,
++            .type = QEMU_OPT_BOOL,
++            .help = "SCSI image",
++            .def_value_str = "off"
++        },
+         { /* end of list */ }
+     }
+ };
+diff --git a/include/block/block_int.h b/include/block/block_int.h
+index 10d87595be..7c0b99c8af 100644
+--- a/include/block/block_int.h
++++ b/include/block/block_int.h
+@@ -40,10 +40,12 @@
+ #define BLOCK_FLAG_ENCRYPT          1
+ #define BLOCK_FLAG_COMPAT6          4
+ #define BLOCK_FLAG_LAZY_REFCOUNTS   8
++#define BLOCK_FLAG_SCSI             16
+ 
+ #define BLOCK_OPT_SIZE              "size"
+ #define BLOCK_OPT_ENCRYPT           "encryption"
+ #define BLOCK_OPT_COMPAT6           "compat6"
++#define BLOCK_OPT_SCSI              "scsi"
+ #define BLOCK_OPT_BACKING_FILE      "backing_file"
+ #define BLOCK_OPT_BACKING_FMT       "backing_fmt"
+ #define BLOCK_OPT_CLUSTER_SIZE      "cluster_size"
+diff --git a/qemu-img.c b/qemu-img.c
+index 46f2a6def4..62df5014c4 100644
+--- a/qemu-img.c
++++ b/qemu-img.c
+@@ -2027,6 +2027,13 @@ static int img_convert(int argc, char **argv)
+         }
+     }
+ 
++    if (qemu_opt_get(opts, BLOCK_OPT_SCSI) &&
++        strcmp(drv->format_name, "vmdk")) {
++        error_report("SCSI devices not supported for this file format");
++        ret = -1;
++        goto out;
++    }
++
+     if (!skip_create) {
+         /* Create the new image */
+         ret = bdrv_create(drv, out_filename, opts, &local_err);

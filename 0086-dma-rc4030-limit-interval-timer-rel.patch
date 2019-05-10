@@ -1,0 +1,32 @@
+From aa9adc0acb8903cb2b621ad66f9aaf33abeb5dea Mon Sep 17 00:00:00 2001
+From: P J P <ppandit@redhat.com>
+Date: Mon, 31 Oct 2016 15:55:14 -0600
+Subject: [PATCH] dma: rc4030: limit interval timer reload value
+
+The JAZZ RC4030 chipset emulator has a periodic timer and
+associated interval reload register. The reload value is used
+as divider when computing timer's next tick value. If reload
+value is large, it could lead to divide by zero error. Limit
+the interval reload value to avoid it.
+
+Reported-by: Huawei PSIRT <psirt@huawei.com>
+Signed-off-by: Prasad J Pandit <pjp@fedoraproject.org>
+[BR: CVE-2016-8667 BSC#1004702]
+Signed-off-by: Bruce Rogers <brogers@suse.com>
+---
+ hw/dma/rc4030.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/hw/dma/rc4030.c b/hw/dma/rc4030.c
+index a06c2359a7..1814ca6b05 100644
+--- a/hw/dma/rc4030.c
++++ b/hw/dma/rc4030.c
+@@ -459,7 +459,7 @@ static void rc4030_write(void *opaque, hwaddr addr, uint64_t data,
+         break;
+     /* Interval timer reload */
+     case 0x0228:
+-        s->itr = val;
++        s->itr = val & 0x01FF;
+         qemu_irq_lower(s->timer_irq);
+         set_next_tick(s);
+         break;

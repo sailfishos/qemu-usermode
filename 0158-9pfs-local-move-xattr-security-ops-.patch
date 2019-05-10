@@ -1,0 +1,182 @@
+From b71c9e5c68ca3f6edd025128de8b658623634dd3 Mon Sep 17 00:00:00 2001
+From: Greg Kurz <groug@kaod.org>
+Date: Sun, 26 Feb 2017 23:41:40 +0100
+Subject: [PATCH] 9pfs: local: move xattr security ops to 9p-xattr.c
+
+These functions are always called indirectly. It really doesn't make sense
+for them to sit in a header file.
+
+Signed-off-by: Greg Kurz <groug@kaod.org>
+Reviewed-by: Stefan Hajnoczi <stefanha@redhat.com>
+(cherry picked from commit 56fc494bdcba35d74da27e1d34dbb6db6fa7bd67)
+[BR: Fix and/or infrastructure for BSC#1020427 CVE-2016-9602]
+Signed-off-by: Bruce Rogers <brogers@suse.com>
+---
+ hw/9pfs/9p-xattr.c | 61 +++++++++++++++++++++++++++++++++++++++++
+ hw/9pfs/9p-xattr.h | 80 ++++++++++--------------------------------------------
+ 2 files changed, 75 insertions(+), 66 deletions(-)
+
+diff --git a/hw/9pfs/9p-xattr.c b/hw/9pfs/9p-xattr.c
+index 5d8595ed93..19a2daf02f 100644
+--- a/hw/9pfs/9p-xattr.c
++++ b/hw/9pfs/9p-xattr.c
+@@ -143,6 +143,67 @@ int v9fs_remove_xattr(FsContext *ctx,
+ 
+ }
+ 
++ssize_t pt_getxattr(FsContext *ctx, const char *path, const char *name,
++                    void *value, size_t size)
++{
++    char *buffer;
++    ssize_t ret;
++
++    buffer = rpath(ctx, path);
++    ret = lgetxattr(buffer, name, value, size);
++    g_free(buffer);
++    return ret;
++}
++
++int pt_setxattr(FsContext *ctx, const char *path, const char *name, void *value,
++                size_t size, int flags)
++{
++    char *buffer;
++    int ret;
++
++    buffer = rpath(ctx, path);
++    ret = lsetxattr(buffer, name, value, size, flags);
++    g_free(buffer);
++    return ret;
++}
++
++int pt_removexattr(FsContext *ctx, const char *path, const char *name)
++{
++    char *buffer;
++    int ret;
++
++    buffer = rpath(ctx, path);
++    ret = lremovexattr(path, name);
++    g_free(buffer);
++    return ret;
++}
++
++ssize_t notsup_getxattr(FsContext *ctx, const char *path, const char *name,
++                        void *value, size_t size)
++{
++    errno = ENOTSUP;
++    return -1;
++}
++
++int notsup_setxattr(FsContext *ctx, const char *path, const char *name,
++                    void *value, size_t size, int flags)
++{
++    errno = ENOTSUP;
++    return -1;
++}
++
++ssize_t notsup_listxattr(FsContext *ctx, const char *path, char *name,
++                         void *value, size_t size)
++{
++    return 0;
++}
++
++int notsup_removexattr(FsContext *ctx, const char *path, const char *name)
++{
++    errno = ENOTSUP;
++    return -1;
++}
++
+ XattrOperations *mapped_xattr_ops[] = {
+     &mapped_user_xattr,
+     &mapped_pacl_xattr,
+diff --git a/hw/9pfs/9p-xattr.h b/hw/9pfs/9p-xattr.h
+index 4d39a20262..e3ee5fa91e 100644
+--- a/hw/9pfs/9p-xattr.h
++++ b/hw/9pfs/9p-xattr.h
+@@ -48,73 +48,21 @@ ssize_t v9fs_list_xattr(FsContext *ctx, const char *path, void *value,
+ int v9fs_set_xattr(FsContext *ctx, const char *path, const char *name,
+                           void *value, size_t size, int flags);
+ int v9fs_remove_xattr(FsContext *ctx, const char *path, const char *name);
++
+ ssize_t pt_listxattr(FsContext *ctx, const char *path, char *name, void *value,
+                      size_t size);
+-
+-static inline ssize_t pt_getxattr(FsContext *ctx, const char *path,
+-                                  const char *name, void *value, size_t size)
+-{
+-    char *buffer;
+-    ssize_t ret;
+-
+-    buffer = rpath(ctx, path);
+-    ret = lgetxattr(buffer, name, value, size);
+-    g_free(buffer);
+-    return ret;
+-}
+-
+-static inline int pt_setxattr(FsContext *ctx, const char *path,
+-                              const char *name, void *value,
+-                              size_t size, int flags)
+-{
+-    char *buffer;
+-    int ret;
+-
+-    buffer = rpath(ctx, path);
+-    ret = lsetxattr(buffer, name, value, size, flags);
+-    g_free(buffer);
+-    return ret;
+-}
+-
+-static inline int pt_removexattr(FsContext *ctx,
+-                                 const char *path, const char *name)
+-{
+-    char *buffer;
+-    int ret;
+-
+-    buffer = rpath(ctx, path);
+-    ret = lremovexattr(path, name);
+-    g_free(buffer);
+-    return ret;
+-}
+-
+-static inline ssize_t notsup_getxattr(FsContext *ctx, const char *path,
+-                                      const char *name, void *value,
+-                                      size_t size)
+-{
+-    errno = ENOTSUP;
+-    return -1;
+-}
+-
+-static inline int notsup_setxattr(FsContext *ctx, const char *path,
+-                                  const char *name, void *value,
+-                                  size_t size, int flags)
+-{
+-    errno = ENOTSUP;
+-    return -1;
+-}
+-
+-static inline ssize_t notsup_listxattr(FsContext *ctx, const char *path,
+-                                       char *name, void *value, size_t size)
+-{
+-    return 0;
+-}
+-
+-static inline int notsup_removexattr(FsContext *ctx,
+-                                     const char *path, const char *name)
+-{
+-    errno = ENOTSUP;
+-    return -1;
+-}
++ssize_t pt_getxattr(FsContext *ctx, const char *path, const char *name,
++                    void *value, size_t size);
++int pt_setxattr(FsContext *ctx, const char *path, const char *name, void *value,
++                size_t size, int flags);
++int pt_removexattr(FsContext *ctx, const char *path, const char *name);
++
++ssize_t notsup_getxattr(FsContext *ctx, const char *path, const char *name,
++                        void *value, size_t size);
++int notsup_setxattr(FsContext *ctx, const char *path, const char *name,
++                    void *value, size_t size, int flags);
++ssize_t notsup_listxattr(FsContext *ctx, const char *path, char *name,
++                         void *value, size_t size);
++int notsup_removexattr(FsContext *ctx, const char *path, const char *name);
+ 
+ #endif
