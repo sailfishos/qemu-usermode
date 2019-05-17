@@ -1,0 +1,64 @@
+From 31ac4d7bac9aacf69f59809751df64af787b0f4d Mon Sep 17 00:00:00 2001
+From: Bruce Rogers <brogers@suse.com>
+Date: Wed, 9 Mar 2016 15:18:11 -0700
+Subject: [PATCH] xen_disk: Add suse specific flush disable handling and map to
+ QEMU equiv
+
+Add code to read the suse specific suse-diskcache-disable-flush flag out
+of xenstore, and set the equivalent flag within QEMU.
+
+Patch taken from Xen's patch queue, Olaf Hering being the original author.
+See https://bugzilla.novell.com/show_bug.cgi?id=879425
+
+Signed-off-by: Bruce Rogers <brogers@suse.com>
+---
+ hw/block/xen_disk.c | 15 +++++++++++++++
+ 1 file changed, 15 insertions(+)
+
+diff --git a/hw/block/xen_disk.c b/hw/block/xen_disk.c
+index d4ce380fee..91008625fe 100644
+--- a/hw/block/xen_disk.c
++++ b/hw/block/xen_disk.c
+@@ -112,6 +112,7 @@ struct XenBlkDev {
+     int                 requests_inflight;
+     int                 requests_finished;
+ 
++    gboolean            cache_unsafe;
+     /* Persistent grants extension */
+     gboolean            feature_discard;
+     gboolean            feature_persistent;
+@@ -793,6 +794,16 @@ static void blk_parse_discard(struct XenBlkDev *blkdev)
+     }
+ }
+ 
++static void blk_parse_cache_unsafe(struct XenBlkDev *blkdev)
++{
++    int enable;
++
++    blkdev->cache_unsafe = false;
++
++    if (xenstore_read_be_int(&blkdev->xendev, "suse-diskcache-disable-flush", &enable) == 0)
++	    blkdev->cache_unsafe = !!enable;
++}
++
+ static int blk_init(struct XenDevice *xendev)
+ {
+     struct XenBlkDev *blkdev = container_of(xendev, struct XenBlkDev, xendev);
+@@ -864,6 +875,7 @@ static int blk_init(struct XenDevice *xendev)
+     xenstore_write_be_int(&blkdev->xendev, "info", info);
+ 
+     blk_parse_discard(blkdev);
++    blk_parse_cache_unsafe(blkdev);
+ 
+     g_free(directiosafe);
+     return 0;
+@@ -906,6 +918,9 @@ static int blk_connect(struct XenDevice *xendev)
+         qflags |= BDRV_O_UNMAP;
+     }
+ 
++    if (blkdev->cache_unsafe)
++        qflags |= BDRV_O_NO_FLUSH;
++
+     /* init qemu block driver */
+     index = (blkdev->xendev.dev - 202 * 256) / 16;
+     blkdev->dinfo = drive_get(IF_XEN, 0, index);

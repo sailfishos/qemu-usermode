@@ -1,0 +1,53 @@
+From 2fe542b273aeaec666f28eee1534c26d94df7207 Mon Sep 17 00:00:00 2001
+From: Halil Pasic <pasic@linux.vnet.ibm.com>
+Date: Mon, 19 Dec 2016 16:44:44 +0100
+Subject: [PATCH] virtio: fix vq->inuse recalc after migr
+
+Correct recalculation of vq->inuse after migration for the corner case
+where the avail_idx has already wrapped but used_idx not yet.
+
+Also change the type of the VirtQueue.inuse to unsigned int. This is
+done to be consistent with other members representing sizes (VRing.num),
+and because C99 guarantees max ring size < UINT_MAX but does not
+guarantee max ring size < INT_MAX.
+
+Signed-off-by: Halil Pasic <pasic@linux.vnet.ibm.com>
+Fixes: bccdef6b ("virtio: recalculate vq->inuse after migration")
+CC: qemu-stable@nongnu.org
+Reviewed-by: Michael S. Tsirkin <mst@redhat.com>
+Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+Reviewed-by: Stefan Hajnoczi <stefanha@redhat.com>
+(cherry picked from commit e66bcc408146730958d1a840bda85d7ad51e0cd7)
+[BR: BSC#1020928]
+Signed-off-by: Bruce Rogers <brogers@suse.com>
+---
+ hw/virtio/virtio.c | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/hw/virtio/virtio.c b/hw/virtio/virtio.c
+index 71c9748759..12c8712734 100644
+--- a/hw/virtio/virtio.c
++++ b/hw/virtio/virtio.c
+@@ -92,7 +92,7 @@ struct VirtQueue
+ 
+     uint16_t queue_index;
+ 
+-    int inuse;
++    unsigned int inuse;
+ 
+     uint16_t vector;
+     void (*handle_output)(VirtIODevice *vdev, VirtQueue *vq);
+@@ -1640,9 +1640,11 @@ int virtio_load(VirtIODevice *vdev, QEMUFile *f, int version_id)
+             /*
+              * Some devices migrate VirtQueueElements that have been popped
+              * from the avail ring but not yet returned to the used ring.
++             * Since max ring size < UINT16_MAX it's safe to use modulo
++             * UINT16_MAX + 1 subtraction.
+              */
+-            vdev->vq[i].inuse = vdev->vq[i].last_avail_idx -
+-                                vdev->vq[i].used_idx;
++            vdev->vq[i].inuse = (uint16_t)(vdev->vq[i].last_avail_idx -
++                                vdev->vq[i].used_idx);
+             if (vdev->vq[i].inuse > vdev->vq[i].vring.num) {
+                 error_report("VQ %d size 0x%x < last_avail_idx 0x%x - "
+                              "used_idx 0x%x",

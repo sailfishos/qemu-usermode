@@ -1,0 +1,95 @@
+From 3a0c42096466bb43d5131d15635c3165b2062646 Mon Sep 17 00:00:00 2001
+From: "Michael S. Tsirkin" <mst@redhat.com>
+Date: Fri, 4 Nov 2016 12:04:23 +0200
+Subject: [PATCH] virtio: allow per-device-class legacy features
+
+Legacy features are those that transitional devices only
+expose on the legacy interface.
+Allow different ones per device class.
+
+Cc: qemu-stable@nongnu.org # dependency for the next patch
+Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+Reviewed-by: Cornelia Huck <cornelia.huck@de.ibm.com>
+(cherry picked from commit 9b706dbbbb81f5cb7c67e491d38cd6077205e056)
+[BR: BSC#1013341 - Added variable vdc to virtio_device_class_init]
+Signed-off-by: Bruce Rogers <brogers@suse.com>
+---
+ hw/s390x/virtio-ccw.c      | 4 +++-
+ hw/virtio/virtio-pci.c     | 4 +++-
+ hw/virtio/virtio.c         | 3 +++
+ include/hw/virtio/virtio.h | 5 +++++
+ 4 files changed, 14 insertions(+), 2 deletions(-)
+
+diff --git a/hw/s390x/virtio-ccw.c b/hw/s390x/virtio-ccw.c
+index d51642db0d..cf0409d406 100644
+--- a/hw/s390x/virtio-ccw.c
++++ b/hw/s390x/virtio-ccw.c
+@@ -400,6 +400,8 @@ static int virtio_ccw_cb(SubchDev *sch, CCW1 ccw)
+         if (!ccw.cda) {
+             ret = -EFAULT;
+         } else {
++            VirtioDeviceClass *vdc = VIRTIO_DEVICE_GET_CLASS(vdev);
++
+             features.index = address_space_ldub(&address_space_memory,
+                                                 ccw.cda
+                                                 + sizeof(features.features),
+@@ -409,7 +411,7 @@ static int virtio_ccw_cb(SubchDev *sch, CCW1 ccw)
+                 if (dev->revision >= 1) {
+                     /* Don't offer legacy features for modern devices. */
+                     features.features = (uint32_t)
+-                        (vdev->host_features & ~VIRTIO_LEGACY_FEATURES);
++                        (vdev->host_features & ~vdc->legacy_features);
+                 } else {
+                     features.features = (uint32_t)vdev->host_features;
+                 }
+diff --git a/hw/virtio/virtio-pci.c b/hw/virtio/virtio-pci.c
+index bfedbbf17f..b56a2f3b5d 100644
+--- a/hw/virtio/virtio-pci.c
++++ b/hw/virtio/virtio-pci.c
+@@ -1242,7 +1242,9 @@ static uint64_t virtio_pci_common_read(void *opaque, hwaddr addr,
+         break;
+     case VIRTIO_PCI_COMMON_DF:
+         if (proxy->dfselect <= 1) {
+-            val = (vdev->host_features & ~VIRTIO_LEGACY_FEATURES) >>
++            VirtioDeviceClass *vdc = VIRTIO_DEVICE_GET_CLASS(vdev);
++
++            val = (vdev->host_features & ~vdc->legacy_features) >>
+                 (32 * proxy->dfselect);
+         }
+         break;
+diff --git a/hw/virtio/virtio.c b/hw/virtio/virtio.c
+index 3a470fc1b6..71c9748759 100644
+--- a/hw/virtio/virtio.c
++++ b/hw/virtio/virtio.c
+@@ -1943,12 +1943,15 @@ static Property virtio_properties[] = {
+ static void virtio_device_class_init(ObjectClass *klass, void *data)
+ {
+     /* Set the default value here. */
++    VirtioDeviceClass *vdc = VIRTIO_DEVICE_CLASS(klass);
+     DeviceClass *dc = DEVICE_CLASS(klass);
+ 
+     dc->realize = virtio_device_realize;
+     dc->unrealize = virtio_device_unrealize;
+     dc->bus_type = TYPE_VIRTIO_BUS;
+     dc->props = virtio_properties;
++
++    vdc->legacy_features |= VIRTIO_LEGACY_FEATURES;
+ }
+ 
+ static const TypeInfo virtio_device_info = {
+diff --git a/include/hw/virtio/virtio.h b/include/hw/virtio/virtio.h
+index 6a37065c23..49bc3181bb 100644
+--- a/include/hw/virtio/virtio.h
++++ b/include/hw/virtio/virtio.h
+@@ -112,6 +112,11 @@ typedef struct VirtioDeviceClass {
+     void (*set_config)(VirtIODevice *vdev, const uint8_t *config);
+     void (*reset)(VirtIODevice *vdev);
+     void (*set_status)(VirtIODevice *vdev, uint8_t val);
++    /* For transitional devices, this is a bitmap of features
++     * that are only exposed on the legacy interface but not
++     * the modern one.
++     */
++    uint64_t legacy_features;
+     /* Test and clear event pending status.
+      * Should be called after unmask to avoid losing events.
+      * If backend does not support masking,

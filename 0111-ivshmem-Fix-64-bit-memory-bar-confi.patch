@@ -1,0 +1,66 @@
+From db8882a3a2161343d2e50c7ad3ada423b18e824d Mon Sep 17 00:00:00 2001
+From: Zhuang Yanying <ann.zhuangyanying@huawei.com>
+Date: Thu, 17 Nov 2016 20:31:03 +0800
+Subject: [PATCH] ivshmem: Fix 64 bit memory bar configuration
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Device ivshmem property use64=0 is designed to make the device
+expose a 32 bit shared memory BAR instead of 64 bit one.  The
+default is a 64 bit BAR, except pc-1.2 and older retain a 32 bit
+BAR.  A 32 bit BAR can support only up to 1 GiB of shared memory.
+
+This worked as designed until commit 5400c02 accidentally flipped
+its sense: since then, we misinterpret use64=0 as use64=1 and vice
+versa.  Worse, the default got flipped as well.  Devices
+ivshmem-plain and ivshmem-doorbell are not affected.
+
+Fix by restoring the test of IVShmemState member not_legacy_32bit
+that got messed up in commit 5400c02.  Also update its
+initialization for devices ivhsmem-plain and ivshmem-doorbell.
+Without that, they'd regress to 32 bit BARs.
+
+Cc: qemu-stable@nongnu.org
+Signed-off-by: Zhuang Yanying <ann.zhuangyanying@huawei.com>
+Reviewed-by: Gonglei <arei.gonglei@huawei.com>
+Reviewed-by: Marc-André Lureau <marcandre.lureau@redhat.com>
+Reviewed-by: Michael S. Tsirkin <mst@redhat.com>
+Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+Reviewed-by: Markus Armbruster <armbru@redhat.com>
+(cherry picked from commit be4e0d737527d8670dc271712faae0de6a181b4e)
+[BR: BSC#1013341]
+Signed-off-by: Bruce Rogers <brogers@suse.com>
+---
+ hw/misc/ivshmem.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/hw/misc/ivshmem.c b/hw/misc/ivshmem.c
+index e40f23bfc2..40ef7fb9b9 100644
+--- a/hw/misc/ivshmem.c
++++ b/hw/misc/ivshmem.c
+@@ -862,7 +862,7 @@ static void ivshmem_common_realize(PCIDevice *dev, Error **errp)
+     pci_register_bar(dev, 0, PCI_BASE_ADDRESS_SPACE_MEMORY,
+                      &s->ivshmem_mmio);
+ 
+-    if (!s->not_legacy_32bit) {
++    if (s->not_legacy_32bit) {
+         attr |= PCI_BASE_ADDRESS_MEM_TYPE_64;
+     }
+ 
+@@ -1051,6 +1051,7 @@ static void ivshmem_plain_init(Object *obj)
+                              ivshmem_check_memdev_is_busy,
+                              OBJ_PROP_LINK_UNREF_ON_RELEASE,
+                              &error_abort);
++    s->not_legacy_32bit = 1;
+ }
+ 
+ static void ivshmem_plain_realize(PCIDevice *dev, Error **errp)
+@@ -1113,6 +1114,7 @@ static void ivshmem_doorbell_init(Object *obj)
+ 
+     s->features |= (1 << IVSHMEM_MSI);
+     s->legacy_size = SIZE_MAX;  /* whatever the server sends */
++    s->not_legacy_32bit = 1;
+ }
+ 
+ static void ivshmem_doorbell_realize(PCIDevice *dev, Error **errp)

@@ -1,0 +1,142 @@
+From 3bee368a97369b08b35e0d28b03e0a545d059cfc Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Andreas=20F=C3=A4rber?= <afaerber@suse.de>
+Date: Fri, 25 Sep 2015 12:31:11 +0200
+Subject: [PATCH] tests: Add scsi-disk test
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Test scsi-{disk,hd,cd} wwn properties for correct 64-bit parsing.
+
+For now piggyback on virtio-scsi.
+
+Cc: Paolo Bonzini <pbonzini@redhat.com>
+Signed-off-by: Andreas Färber <afaerber@suse.de>
+---
+ MAINTAINERS            |  1 +
+ tests/Makefile         |  3 ++
+ tests/scsi-disk-test.c | 82 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 86 insertions(+)
+ create mode 100644 tests/scsi-disk-test.c
+
+diff --git a/MAINTAINERS b/MAINTAINERS
+index faab285ace..ae64384ceb 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -831,6 +831,7 @@ M: Paolo Bonzini <pbonzini@redhat.com>
+ S: Supported
+ F: include/hw/scsi*
+ F: hw/scsi/*
++F: tests/scsi-disk-test.c
+ T: git git://github.com/bonzini/qemu.git scsi-next
+ 
+ LSI53C895A
+diff --git a/tests/Makefile b/tests/Makefile
+index a0dd0ac048..73d5b40c03 100644
+--- a/tests/Makefile
++++ b/tests/Makefile
+@@ -130,6 +130,8 @@ check-qtest-virtio-y += tests/virtio-rng-test$(EXESUF)
+ gcov-files-virtio-y += hw/virtio/virtio-rng.c
+ check-qtest-virtio-y += tests/virtio-scsi-test$(EXESUF)
+ gcov-files-virtio-y += i386-softmmu/hw/scsi/virtio-scsi.c
++check-qtest-virtio-y += tests/scsi-disk-test$(EXESUF)
++gcov-files-virtio-y += i386-softmmu/hw/scsi/scsi-disk.c
+ ifeq ($(CONFIG_VIRTIO)$(CONFIG_VIRTFS)$(CONFIG_PCI),yyy)
+ check-qtest-virtio-y += tests/virtio-9p-test$(EXESUF)
+ gcov-files-virtio-y += hw/9pfs/virtio-9p.c
+@@ -583,6 +585,7 @@ tests/usb-hcd-ehci-test$(EXESUF): tests/usb-hcd-ehci-test.o $(libqos-usb-obj-y)
+ tests/usb-hcd-xhci-test$(EXESUF): tests/usb-hcd-xhci-test.o $(libqos-usb-obj-y)
+ tests/pc-cpu-test$(EXESUF): tests/pc-cpu-test.o
+ tests/vhost-user-test$(EXESUF): tests/vhost-user-test.o qemu-char.o qemu-timer.o $(qtest-obj-y) $(test-io-obj-y)
++tests/scsi-disk-test$(EXESUF): tests/scsi-disk-test.o
+ tests/qemu-iotests/socket_scm_helper$(EXESUF): tests/qemu-iotests/socket_scm_helper.o
+ tests/test-qemu-opts$(EXESUF): tests/test-qemu-opts.o $(test-util-obj-y)
+ tests/test-write-threshold$(EXESUF): tests/test-write-threshold.o $(test-block-obj-y)
+diff --git a/tests/scsi-disk-test.c b/tests/scsi-disk-test.c
+new file mode 100644
+index 0000000000..f19f93d97a
+--- /dev/null
++++ b/tests/scsi-disk-test.c
+@@ -0,0 +1,82 @@
++/*
++ * QTest testcase for SCSI disks
++ * See virtio-scsi-test for more integrated tests.
++ *
++ * Copyright (c) 2015 SUSE Linux GmbH
++ *
++ * This work is licensed under the terms of the GNU GPL, version 2 or later.
++ * See the COPYING file in the top-level directory.
++ */
++
++#include "qemu/osdep.h"
++#include <glib.h>
++#include "libqtest.h"
++#include "qapi/qmp/qint.h"
++
++static void test_scsi_disk_common(const char *type, const char *id)
++{
++    char *cmdline, *path;
++    QDict *response;
++    QInt *value;
++
++    cmdline = g_strdup_printf(
++        "-drive id=drv0,if=none,file=/dev/null,format=raw "
++        "-device virtio-scsi-pci,id=scsi0 "
++        "-device %s,id=%s,bus=scsi0.0,drive=drv0"
++        ",wwn=0x%" PRIx64 ",port_wwn=0x%" PRIx64,
++        type, id, UINT64_MAX, UINT64_C(1) << 63);
++    qtest_start(cmdline);
++    g_free(cmdline);
++
++    path = g_strdup_printf("/machine/peripheral/%s", id);
++
++    response = qmp("{ 'execute': 'qom-get',"
++                   "  'arguments': { 'path': %s,"
++                   "                 'property': 'wwn' } }",
++                   path);
++    g_assert(response);
++    g_assert(qdict_haskey(response, "return"));
++    value = qobject_to_qint(qdict_get(response, "return"));
++    g_assert_cmpint(qint_get_int(value), ==, UINT64_MAX);
++
++    response = qmp("{ 'execute': 'qom-get',"
++                   "  'arguments': { 'path': %s,"
++                   "                 'property': 'port_wwn' } }",
++                   path);
++    g_assert(response);
++    g_assert(qdict_haskey(response, "return"));
++    value = qobject_to_qint(qdict_get(response, "return"));
++    g_assert_cmpint(qint_get_int(value), ==, UINT64_C(1) << 63);
++
++    g_free(path);
++    qtest_end();
++}
++
++static void test_scsi_disk(void)
++{
++    test_scsi_disk_common("scsi-disk", "disk0");
++}
++
++static void test_scsi_hd(void)
++{
++    test_scsi_disk_common("scsi-hd", "hd0");
++}
++
++static void test_scsi_cd(void)
++{
++    test_scsi_disk_common("scsi-cd", "cd0");
++}
++
++int main(int argc, char **argv)
++{
++    int ret;
++
++    g_test_init(&argc, &argv, NULL);
++    qtest_add_func("/scsi-disk/props", test_scsi_disk);
++    qtest_add_func("/scsi-hd/props", test_scsi_hd);
++    qtest_add_func("/scsi-cd/props", test_scsi_cd);
++
++    ret = g_test_run();
++
++    return ret;
++}

@@ -1,0 +1,35 @@
+From f737b2a97755e5535d083f1332d707cfe56842e8 Mon Sep 17 00:00:00 2001
+From: Alexander Graf <agraf@suse.de>
+Date: Mon, 20 Aug 2012 00:07:13 +0200
+Subject: [PATCH] linux-user: implement FS_IOC_SETFLAGS ioctl
+
+Signed-off-by: Alexander Graf <agraf@suse.de>
+---
+ linux-user/ioctls.h       | 1 +
+ linux-user/syscall_defs.h | 1 +
+ 2 files changed, 2 insertions(+)
+
+diff --git a/linux-user/ioctls.h b/linux-user/ioctls.h
+index 8650a70235..f9f7c83787 100644
+--- a/linux-user/ioctls.h
++++ b/linux-user/ioctls.h
+@@ -91,6 +91,7 @@
+                    MK_PTR(MK_STRUCT(STRUCT_fiemap)))
+ #endif
+   IOCTL(FS_IOC_GETFLAGS, IOC_R, MK_PTR(TYPE_LONG))
++  IOCTL(FS_IOC_SETFLAGS, IOC_W, MK_PTR(TYPE_LONG))
+ 
+   IOCTL(SIOCATMARK, 0, TYPE_NULL)
+   IOCTL(SIOCGIFNAME, IOC_RW, MK_PTR(TYPE_INT))
+diff --git a/linux-user/syscall_defs.h b/linux-user/syscall_defs.h
+index 5152e897b7..77be1817fc 100644
+--- a/linux-user/syscall_defs.h
++++ b/linux-user/syscall_defs.h
+@@ -2458,6 +2458,7 @@ struct target_f_owner_ex {
+ #define TARGET_MTIOCPOS        TARGET_IOR('m', 3, struct mtpos)
+ 
+ #define TARGET_FS_IOC_GETFLAGS TARGET_IORU('f', 1)
++#define TARGET_FS_IOC_SETFLAGS TARGET_IOWU('f', 2)
+ 
+ struct target_sysinfo {
+     abi_long uptime;                /* Seconds since boot */

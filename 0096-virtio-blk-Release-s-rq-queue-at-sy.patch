@@ -1,0 +1,48 @@
+From 2e625cdd21e9e4100feace3ed5440d6dfd67e01d Mon Sep 17 00:00:00 2001
+From: Fam Zheng <famz@redhat.com>
+Date: Thu, 4 Aug 2016 10:44:13 +0800
+Subject: [PATCH] virtio-blk: Release s->rq queue at system_reset
+
+At system_reset, there is no point in retrying the queued request,
+because the driver that issued the request won't be around any more.
+
+Analyzed-by: Laszlo Ersek <lersek@redhat.com>
+Reported-by: Laszlo Ersek <lersek@redhat.com>
+Signed-off-by: Fam Zheng <famz@redhat.com>
+Reviewed-by: Laszlo Ersek <lersek@redhat.com>
+Message-id: 1470278654-13525-2-git-send-email-famz@redhat.com
+Signed-off-by: Stefan Hajnoczi <stefanha@redhat.com>
+(cherry picked from commit 26307f6aa451708b8c60a49d605a78bbd29f70ef)
+[BR: BSC#1013341]
+Signed-off-by: Bruce Rogers <brogers@suse.com>
+---
+ hw/block/virtio-blk.c | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/hw/block/virtio-blk.c b/hw/block/virtio-blk.c
+index 3f88f8cf59..dab8ae661c 100644
+--- a/hw/block/virtio-blk.c
++++ b/hw/block/virtio-blk.c
+@@ -654,6 +654,7 @@ static void virtio_blk_reset(VirtIODevice *vdev)
+ {
+     VirtIOBlock *s = VIRTIO_BLK(vdev);
+     AioContext *ctx;
++    VirtIOBlockReq *req;
+ 
+     /*
+      * This should cancel pending requests, but can't do nicely until there
+@@ -663,6 +664,14 @@ static void virtio_blk_reset(VirtIODevice *vdev)
+     aio_context_acquire(ctx);
+     blk_drain(s->blk);
+ 
++    /* We drop queued requests after blk_drain() because blk_drain() itself can
++     * produce them. */
++    while (s->rq) {
++        req = s->rq;
++        s->rq = req->next;
++        virtio_blk_free_request(req);
++    }
++
+     if (s->dataplane) {
+         virtio_blk_data_plane_stop(s->dataplane);
+     }

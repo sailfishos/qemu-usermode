@@ -1,0 +1,31 @@
+From 27ccdc7b551b4a6d2d583b16b7068ce50ea7da34 Mon Sep 17 00:00:00 2001
+From: Bruce Rogers <brogers@suse.com>
+Date: Thu, 1 May 2014 09:37:36 -0600
+Subject: [PATCH] qtest: Increase socket timeout to accomodate unpredictable
+ build service
+
+After encountering make check errors for some time, it appears that the
+problem is the occasional socket timeout, which is probably due to a
+combination of a slow and overloaded build host in the build service.
+
+Increase the timeout from 5 to 15 seconds and hope we don't see the
+problem again.
+
+Signed-off-by: Bruce Rogers <brogers@suse.com>
+---
+ tests/libqtest.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/tests/libqtest.c b/tests/libqtest.c
+index b12a9e4ca9..8de01c07e9 100644
+--- a/tests/libqtest.c
++++ b/tests/libqtest.c
+@@ -27,7 +27,7 @@
+ #include "qapi/qmp/qjson.h"
+ 
+ #define MAX_IRQ 256
+-#define SOCKET_TIMEOUT 5
++#define SOCKET_TIMEOUT 15
+ 
+ QTestState *global_qtest;
+ 

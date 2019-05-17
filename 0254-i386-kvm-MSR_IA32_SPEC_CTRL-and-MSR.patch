@@ -1,0 +1,162 @@
+From 5d4b5d0d3eba87eda861456167db5ac864ce2096 Mon Sep 17 00:00:00 2001
+From: Wei Wang <wei.w.wang@intel.com>
+Date: Tue, 7 Nov 2017 16:39:49 +0800
+Subject: [PATCH] i386/kvm: MSR_IA32_SPEC_CTRL and MSR_IA32_PRED_CMD
+
+CPUID(EAX=0X7,ECX=0).EDX[26]/[27] indicates the support of
+MSR_IA32_SPEC_CTRL and MSR_IA32_PRED_CMD. Expose the CPUID
+to the guest. Also add the support of transferring the MSRs during live
+migration.
+
+Signed-off-by: Wei Wang <wei.w.wang@intel.com>
+[BR: BSC#1068032 CVE-2017-5715]
+Signed-off-by: Bruce Rogers <brogers@suse.com>
+---
+ target-i386/cpu.c     |  3 ++-
+ target-i386/cpu.h     |  5 +++++
+ target-i386/kvm.c     | 15 ++++++++++++++-
+ target-i386/machine.c | 20 ++++++++++++++++++++
+ 4 files changed, 41 insertions(+), 2 deletions(-)
+
+diff --git a/target-i386/cpu.c b/target-i386/cpu.c
+index ee67091fe8..29e5735724 100644
+--- a/target-i386/cpu.c
++++ b/target-i386/cpu.c
+@@ -2457,13 +2457,14 @@ void cpu_x86_cpuid(CPUX86State *env, uint32_t index, uint32_t count,
+     case 7:
+         /* Structured Extended Feature Flags Enumeration Leaf */
+         if (count == 0) {
++            host_cpuid(index, 0, eax, ebx, ecx, edx);
+             *eax = 0; /* Maximum ECX value for sub-leaves */
+             *ebx = env->features[FEAT_7_0_EBX]; /* Feature flags */
+             *ecx = env->features[FEAT_7_0_ECX]; /* Feature flags */
+             if ((*ecx & CPUID_7_0_ECX_PKU) && env->cr[4] & CR4_PKE_MASK) {
+                 *ecx |= CPUID_7_0_ECX_OSPKE;
+             }
+-            *edx = 0; /* Reserved */
++            *edx &= CPUID_7_0_EDX_SPEC_CTRL | CPUID_7_0_EDX_PRED_CMD;
+         } else {
+             *eax = 0;
+             *ebx = 0;
+diff --git a/target-i386/cpu.h b/target-i386/cpu.h
+index 1758030f96..edfa6fb57c 100644
+--- a/target-i386/cpu.h
++++ b/target-i386/cpu.h
+@@ -325,6 +325,7 @@
+ #define MSR_IA32_APICBASE_BASE          (0xfffffU<<12)
+ #define MSR_IA32_FEATURE_CONTROL        0x0000003a
+ #define MSR_TSC_ADJUST                  0x0000003b
++#define MSR_IA32_SPEC_CTRL              0x00000048
+ #define MSR_IA32_TSCDEADLINE            0x6e0
+ 
+ #define MSR_P6_PERFCTR0                 0xc1
+@@ -608,6 +609,9 @@ typedef uint32_t FeatureWordArray[FEATURE_WORDS];
+ #define CPUID_7_0_ECX_PKU      (1U << 3)
+ #define CPUID_7_0_ECX_OSPKE    (1U << 4)
+ 
++#define CPUID_7_0_EDX_SPEC_CTRL     (1U << 26)
++#define CPUID_7_0_EDX_PRED_CMD      (1U << 27)
++
+ #define CPUID_XSAVE_XSAVEOPT   (1U << 0)
+ #define CPUID_XSAVE_XSAVEC     (1U << 1)
+ #define CPUID_XSAVE_XGETBV1    (1U << 2)
+@@ -1030,6 +1034,7 @@ typedef struct CPUX86State {
+ 
+     uint32_t pkru;
+ 
++    uint64_t spec_ctrl;
+     TPRAccess tpr_access_type;
+ } CPUX86State;
+ 
+diff --git a/target-i386/kvm.c b/target-i386/kvm.c
+index 799fdfa682..a6e67ac990 100644
+--- a/target-i386/kvm.c
++++ b/target-i386/kvm.c
+@@ -75,6 +75,7 @@ static bool has_msr_star;
+ static bool has_msr_hsave_pa;
+ static bool has_msr_tsc_aux;
+ static bool has_msr_tsc_adjust;
++static bool has_msr_spec_ctrl;
+ static bool has_msr_tsc_deadline;
+ static bool has_msr_feature_control;
+ static bool has_msr_async_pf_en;
+@@ -996,6 +997,10 @@ static int kvm_get_supported_msrs(KVMState *s)
+                     has_msr_tsc_adjust = true;
+                     continue;
+                 }
++                if (kvm_msr_list->indices[i] == MSR_IA32_SPEC_CTRL) {
++                    has_msr_spec_ctrl = true;
++                    continue;
++                }
+                 if (kvm_msr_list->indices[i] == MSR_IA32_TSCDEADLINE) {
+                     has_msr_tsc_deadline = true;
+                     continue;
+@@ -1542,6 +1547,9 @@ static int kvm_put_msrs(X86CPU *cpu, int level)
+     if (has_msr_xss) {
+         kvm_msr_entry_set(&msrs[n++], MSR_IA32_XSS, env->xss);
+     }
++    if (has_msr_spec_ctrl) {
++        kvm_msr_entry_set(&msrs[n++], MSR_IA32_SPEC_CTRL, env->spec_ctrl);
++    }
+ #ifdef TARGET_X86_64
+     if (lm_capable_kernel) {
+         kvm_msr_entry_set(&msrs[n++], MSR_CSTAR, env->cstar);
+@@ -1965,7 +1973,9 @@ static int kvm_get_msrs(X86CPU *cpu)
+     if (has_msr_xss) {
+         msrs[n++].index = MSR_IA32_XSS;
+     }
+-
++    if (has_msr_spec_ctrl) {
++        msrs[n++].index = MSR_IA32_SPEC_CTRL;
++    }
+ 
+     if (!env->tsc_valid) {
+         msrs[n++].index = MSR_IA32_TSC;
+@@ -2155,6 +2165,9 @@ static int kvm_get_msrs(X86CPU *cpu)
+         case MSR_IA32_XSS:
+             env->xss = msrs[i].data;
+             break;
++        case MSR_IA32_SPEC_CTRL:
++            env->spec_ctrl = msrs[i].data;
++            break;
+         default:
+             if (msrs[i].index >= MSR_MC0_CTL &&
+                 msrs[i].index < MSR_MC0_CTL + (env->mcg_cap & 0xff) * 4) {
+diff --git a/target-i386/machine.c b/target-i386/machine.c
+index ee5b94922b..60561ffacd 100644
+--- a/target-i386/machine.c
++++ b/target-i386/machine.c
+@@ -849,6 +849,25 @@ static const VMStateDescription vmstate_xss = {
+     }
+ };
+ 
++static bool spec_ctrl_needed(void *opaque)
++{
++    X86CPU *cpu = opaque;
++    CPUX86State *env = &cpu->env;
++
++    return env->spec_ctrl != 0;
++}
++
++static const VMStateDescription vmstate_spec_ctrl = {
++    .name = "cpu/spec_ctrl",
++    .version_id = 1,
++    .minimum_version_id = 1,
++    .needed = spec_ctrl_needed,
++    .fields = (VMStateField[]) {
++        VMSTATE_UINT64(env.spec_ctrl, X86CPU),
++        VMSTATE_END_OF_LIST()
++    }
++};
++
+ #ifdef TARGET_X86_64
+ static bool pkru_needed(void *opaque)
+ {
+@@ -1012,6 +1031,7 @@ VMStateDescription vmstate_x86_cpu = {
+         &vmstate_msr_hyperv_stimer,
+         &vmstate_avx512,
+         &vmstate_xss,
++        &vmstate_spec_ctrl,
+         &vmstate_tsc_khz,
+ #ifdef TARGET_X86_64
+         &vmstate_pkru,

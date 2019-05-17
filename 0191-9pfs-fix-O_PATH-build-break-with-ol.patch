@@ -1,0 +1,49 @@
+From 84658d57948c4feb904d6ff0a7c016b6ce4b1c4d Mon Sep 17 00:00:00 2001
+From: Greg Kurz <groug@kaod.org>
+Date: Mon, 6 Mar 2017 17:34:01 +0100
+Subject: [PATCH] 9pfs: fix O_PATH build break with older glibc versions
+
+When O_PATH is used with O_DIRECTORY, it only acts as an optimization: the
+openat() syscall simply finds the name in the VFS, and doesn't trigger the
+underlying filesystem.
+
+On systems that don't define O_PATH, because they have glibc version 2.13
+or older for example, we can safely omit it. We don't want to deactivate
+O_PATH globally though, in case it is used without O_DIRECTORY. The is done
+with a dedicated macro.
+
+Systems without O_PATH may thus fail to resolve names that involve
+unreadable directories, compared to newer systems succeeding, but such
+corner case failure is our only option on those older systems to avoid
+the security hole of chasing symlinks inappropriately.
+
+Signed-off-by: Greg Kurz <groug@kaod.org>
+Reviewed-by: Eric Blake <eblake@redhat.com>
+(added last paragraph to changelog as suggested by Eric Blake)
+Signed-off-by: Greg Kurz <groug@kaod.org>
+
+(cherry picked from commit 918112c02aff2bac4cb72dc2feba0cb05305813e)
+[BR: Fix and/or infrastructure for BSC#1020427 CVE-2016-9602]
+Signed-off-by: Bruce Rogers <brogers@suse.com>
+---
+ hw/9pfs/9p-util.h | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/hw/9pfs/9p-util.h b/hw/9pfs/9p-util.h
+index 091f3ce88e..cb7b2072d3 100644
+--- a/hw/9pfs/9p-util.h
++++ b/hw/9pfs/9p-util.h
+@@ -22,7 +22,12 @@ static inline void close_preserve_errno(int fd)
+ 
+ static inline int openat_dir(int dirfd, const char *name)
+ {
+-    return openat(dirfd, name, O_DIRECTORY | O_RDONLY | O_PATH);
++#ifdef O_PATH
++#define OPENAT_DIR_O_PATH O_PATH
++#else
++#define OPENAT_DIR_O_PATH 0
++#endif
++    return openat(dirfd, name, O_DIRECTORY | O_RDONLY | OPENAT_DIR_O_PATH);
+ }
+ 
+ static inline int openat_file(int dirfd, const char *name, int flags,

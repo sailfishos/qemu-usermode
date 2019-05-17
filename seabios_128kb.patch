@@ -1,0 +1,303 @@
+From 5fff5f1e79d8bc7ef24d1f8ff42c8021215f23a6 Mon Sep 17 00:00:00 2001
+From: Bruce Rogers <brogers@suse.com>
+Date: Thu, 19 Mar 2015 16:34:31 -0600
+Subject: [PATCH] Eliminate some duplicate string segments to reduce bios image
+ size
+
+In some build environments, we are running up against the 128K bios
+size limit. This change simply takes larger string segments which are
+used in printf style messages and uses a single copy, now referenced
+with a %s specifier, resulting in the needed space savings.
+
+Signed-off-by: Bruce Rogers <brogers@suse.com>
+---
+ src/boot.c        | 20 +++++++++++---------
+ src/bootsplash.c  |  5 +++--
+ src/fw/paravirt.c |  8 +++++---
+ src/fw/pciinit.c  | 19 ++++++++++---------
+ src/hw/usb-hub.c  |  9 +++++----
+ src/hw/usb-msc.c  |  6 ++++--
+ 6 files changed, 38 insertions(+), 29 deletions(-)
+
+diff --git a/src/boot.c b/src/boot.c
+index d6b1fb7..de37041 100644
+--- a/src/boot.c
++++ b/src/boot.c
+@@ -25,6 +25,8 @@
+  * Boot priority ordering
+  ****************************************************************/
+ 
++static const char *no_boot_dev_str = "No bootable device.";
++static const char *boot_str = "Booting from ";
+ static char **Bootorder VARVERIFY32INIT;
+ static int BootorderCount;
+ 
+@@ -587,7 +589,7 @@ bcv_prepboot(void)
+ static void
+ call_boot_entry(struct segoff_s bootsegip, u8 bootdrv)
+ {
+-    dprintf(1, "Booting from %04x:%04x\n", bootsegip.seg, bootsegip.offset);
++    dprintf(1, "%s%04x:%04x\n", boot_str, bootsegip.seg, bootsegip.offset);
+     struct bregs br;
+     memset(&br, 0, sizeof(br));
+     br.flags = F_IF;
+@@ -641,7 +643,7 @@ boot_cdrom(struct drive_s *drive_g)
+ {
+     if (! CONFIG_CDROM_BOOT)
+         return;
+-    printf("Booting from DVD/CD...\n");
++    printf("%sDVD/CD...\n", boot_str);
+ 
+     int status = cdrom_boot(drive_g);
+     if (status) {
+@@ -664,7 +666,7 @@ boot_cbfs(struct cbfs_file *file)
+ {
+     if (!CONFIG_COREBOOT_FLASH)
+         return;
+-    printf("Booting from CBFS...\n");
++    printf("%sCBFS...\n", boot_str);
+     cbfs_run_payload(file);
+ }
+ 
+@@ -672,7 +674,7 @@ boot_cbfs(struct cbfs_file *file)
+ static void
+ boot_rom(u32 vector)
+ {
+-    printf("Booting from ROM...\n");
++    printf("%sROM...\n", boot_str);
+     struct segoff_s so;
+     so.segoff = vector;
+     call_boot_entry(so, 0);
+@@ -683,10 +685,10 @@ static void
+ boot_fail(void)
+ {
+     if (BootRetryTime == (u32)-1)
+-        printf("No bootable device.\n");
++        printf("%s\n", no_boot_dev_str);
+     else
+-        printf("No bootable device.  Retrying in %d seconds.\n"
+-               , BootRetryTime/1000);
++        printf("%s  Retrying in %d seconds.\n", no_boot_dev_str,
++               BootRetryTime/1000);
+     // Wait for 'BootRetryTime' milliseconds and then reboot.
+     u32 end = irqtimer_calc(BootRetryTime);
+     for (;;) {
+@@ -712,11 +714,11 @@ do_boot(int seq_nr)
+     struct bev_s *ie = &BEV[seq_nr];
+     switch (ie->type) {
+     case IPL_TYPE_FLOPPY:
+-        printf("Booting from Floppy...\n");
++        printf("%sFloppy...\n", boot_str);
+         boot_disk(0x00, CheckFloppySig);
+         break;
+     case IPL_TYPE_HARDDISK:
+-        printf("Booting from Hard Disk...\n");
++        printf("%sHard Disk...\n", boot_str);
+         boot_disk(0x80, 1);
+         break;
+     case IPL_TYPE_CDROM:
+diff --git a/src/bootsplash.c b/src/bootsplash.c
+index c572685..e28d264 100644
+--- a/src/bootsplash.c
++++ b/src/bootsplash.c
+@@ -16,6 +16,7 @@
+ #include "string.h" // memset
+ #include "util.h" // enable_bootsplash
+ 
++static const char *decode_failed_str = "_decode failed with return code ";
+ 
+ /****************************************************************
+  * Helper functions
+@@ -154,7 +155,7 @@ enable_bootsplash(void)
+         dprintf(5, "Decoding bootsplash.jpg\n");
+         ret = jpeg_decode(jpeg, filedata);
+         if (ret) {
+-            dprintf(1, "jpeg_decode failed with return code %d...\n", ret);
++            dprintf(1, "jpeg%s%d...\n", decode_failed_str, ret);
+             goto done;
+         }
+         jpeg_get_size(jpeg, &width, &height);
+@@ -168,7 +169,7 @@ enable_bootsplash(void)
+         dprintf(5, "Decoding bootsplash.bmp\n");
+         ret = bmp_decode(bmp, filedata, filesize);
+         if (ret) {
+-            dprintf(1, "bmp_decode failed with return code %d...\n", ret);
++            dprintf(1, "bmp%s%d...\n", decode_failed_str, ret);
+             goto done;
+         }
+         bmp_get_size(bmp, &width, &height);
+diff --git a/src/fw/paravirt.c b/src/fw/paravirt.c
+index db22ae8..868435a 100644
+--- a/src/fw/paravirt.c
++++ b/src/fw/paravirt.c
+@@ -36,6 +36,8 @@ int PlatformRunningOn VARFSEG;
+  */
+ #define KVM_CPUID_SIGNATURE     0x40000000
+ 
++static const char *running_on_qemu_str = "Running on QEMU (";
++
+ static void kvm_detect(void)
+ {
+     unsigned int eax, ebx, ecx, edx;
+@@ -73,13 +75,13 @@ static void qemu_detect(void)
+     PlatformRunningOn |= PF_QEMU;
+     switch (d) {
+     case 0x1237:
+-        dprintf(1, "Running on QEMU (i440fx)\n");
++        dprintf(1, "%si440fx)\n", running_on_qemu_str);
+         break;
+     case 0x29c0:
+-        dprintf(1, "Running on QEMU (q35)\n");
++        dprintf(1, "%sq35)\n", running_on_qemu_str);
+         break;
+     default:
+-        dprintf(1, "Running on QEMU (unknown nb: %04x:%04x)\n", v, d);
++        dprintf(1, "%sunknown nb: %04x:%04x)\n", running_on_qemu_str, v, d);
+         break;
+     }
+     kvm_detect();
+diff --git a/src/fw/pciinit.c b/src/fw/pciinit.c
+index ac39d23..63018e4 100644
+--- a/src/fw/pciinit.c
++++ b/src/fw/pciinit.c
+@@ -27,6 +27,10 @@
+ #define PCI_BRIDGE_MEM_MIN    (1<<21)  // 2M == hugepage size
+ #define PCI_BRIDGE_IO_MIN      0x1000  // mandated by pci bridge spec
+ 
++static const char *pri_bus_str = "PCI: primary bus = ";
++static const char *sec_bus_str = "PCI: secondary bus = ";
++static const char *sub_bus_str = "PCI: subordinate bus = ";
++
+ static const char *region_type_name[] = {
+     [ PCI_REGION_TYPE_IO ]      = "io",
+     [ PCI_REGION_TYPE_MEM ]     = "mem",
+@@ -425,7 +429,6 @@ static void pci_bios_init_platform(void)
+     }
+ }
+ 
+-
+ /****************************************************************
+  * Bus initialization
+  ****************************************************************/
+@@ -456,21 +459,20 @@ pci_bios_init_bus_rec(int bus, u8 *pci_bus)
+ 
+         u8 pribus = pci_config_readb(bdf, PCI_PRIMARY_BUS);
+         if (pribus != bus) {
+-            dprintf(1, "PCI: primary bus = 0x%x -> 0x%x\n", pribus, bus);
++            dprintf(1, "%s0x%x -> 0x%x\n", pri_bus_str, pribus, bus);
+             pci_config_writeb(bdf, PCI_PRIMARY_BUS, bus);
+         } else {
+-            dprintf(1, "PCI: primary bus = 0x%x\n", pribus);
++            dprintf(1, "%s0x%x\n", pri_bus_str, pribus);
+         }
+ 
+         u8 secbus = pci_config_readb(bdf, PCI_SECONDARY_BUS);
+         (*pci_bus)++;
+         if (*pci_bus != secbus) {
+-            dprintf(1, "PCI: secondary bus = 0x%x -> 0x%x\n",
+-                    secbus, *pci_bus);
++            dprintf(1, "%s0x%x -> 0x%x\n", sec_bus_str, secbus, *pci_bus);
+             secbus = *pci_bus;
+             pci_config_writeb(bdf, PCI_SECONDARY_BUS, secbus);
+         } else {
+-            dprintf(1, "PCI: secondary bus = 0x%x\n", secbus);
++            dprintf(1, "%s0x%x\n", sec_bus_str, secbus);
+         }
+ 
+         /* set to max for access to all subordinate buses.
+@@ -481,11 +483,10 @@ pci_bios_init_bus_rec(int bus, u8 *pci_bus)
+         pci_bios_init_bus_rec(secbus, pci_bus);
+ 
+         if (subbus != *pci_bus) {
+-            dprintf(1, "PCI: subordinate bus = 0x%x -> 0x%x\n",
+-                    subbus, *pci_bus);
++            dprintf(1, "%s0x%x -> 0x%x\n", sub_bus_str, subbus, *pci_bus);
+             subbus = *pci_bus;
+         } else {
+-            dprintf(1, "PCI: subordinate bus = 0x%x\n", subbus);
++            dprintf(1, "%s0x%x\n", sub_bus_str, subbus);
+         }
+         pci_config_writeb(bdf, PCI_SUBORDINATE_BUS, subbus);
+     }
+diff --git a/src/hw/usb-hub.c b/src/hw/usb-hub.c
+index 54e341b..337385d 100644
+--- a/src/hw/usb-hub.c
++++ b/src/hw/usb-hub.c
+@@ -11,6 +11,8 @@
+ #include "usb-hub.h" // struct usb_hub_descriptor
+ #include "util.h" // timer_calc
+ 
++static const char *port_hub_fail_str = "Failure on hub port ";
++
+ static int
+ get_hub_desc(struct usb_pipe *pipe, struct usb_hub_descriptor *desc)
+ {
+@@ -82,7 +84,6 @@ get_port_status(struct usbhub_s *hub, int port, struct usb_port_status *sts)
+     mutex_unlock(&hub->lock);
+     return ret;
+ }
+-
+ // Check if device attached to port
+ static int
+ usb_hub_detect(struct usbhub_s *hub, u32 port)
+@@ -90,7 +91,7 @@ usb_hub_detect(struct usbhub_s *hub, u32 port)
+     struct usb_port_status sts;
+     int ret = get_port_status(hub, port, &sts);
+     if (ret) {
+-        dprintf(1, "Failure on hub port %d detect\n", port);
++        dprintf(1, "%s%d detect\n", port_hub_fail_str, port);
+         return -1;
+     }
+     return (sts.wPortStatus & USB_PORT_STAT_CONNECTION) ? 1 : 0;
+@@ -102,7 +103,7 @@ usb_hub_disconnect(struct usbhub_s *hub, u32 port)
+ {
+     int ret = clear_port_feature(hub, port, USB_PORT_FEAT_ENABLE);
+     if (ret)
+-        dprintf(1, "Failure on hub port %d disconnect\n", port);
++        dprintf(1, "%s%d disconnect\n", port_hub_fail_str, port);
+ }
+ 
+ // Reset device on port
+@@ -142,7 +143,7 @@ usb_hub_reset(struct usbhub_s *hub, u32 port)
+             >> USB_PORT_STAT_SPEED_SHIFT);
+ 
+ fail:
+-    dprintf(1, "Failure on hub port %d reset\n", port);
++    dprintf(1, "%s%d reset\n", port_hub_fail_str, port);
+     usb_hub_disconnect(hub, port);
+     return -1;
+ }
+diff --git a/src/hw/usb-msc.c b/src/hw/usb-msc.c
+index d90319f..9c6b3e2 100644
+--- a/src/hw/usb-msc.c
++++ b/src/hw/usb-msc.c
+@@ -50,6 +50,8 @@ struct csw_s {
+     u8 bCSWStatus;
+ } PACKED;
+ 
++static const char *cant_config_str = "Unable to configure USB MSC ";
++
+ static int
+ usb_msc_send(struct usbdrive_s *udrive_gf, int dir, void *buf, u32 bytes)
+ {
+@@ -158,7 +160,7 @@ usb_msc_lun_setup(struct usb_pipe *inpipe, struct usb_pipe *outpipe,
+     int prio = bootprio_find_usb(usbdev, lun);
+     int ret = scsi_drive_setup(&drive->drive, "USB MSC", prio);
+     if (ret) {
+-        dprintf(1, "Unable to configure USB MSC drive.\n");
++        dprintf(1, "%sdrive.\n", cant_config_str);
+         free(drive);
+         return -1;
+     }
+@@ -213,7 +215,7 @@ usb_msc_setup(struct usbdevice_s *usbdev)
+ 
+     return 0;
+ fail:
+-    dprintf(1, "Unable to configure USB MSC device.\n");
++    dprintf(1, "%sdevice.\n", cant_config_str);
+     usb_free_pipe(usbdev, inpipe);
+     usb_free_pipe(usbdev, outpipe);
+     return -1;
+-- 
+1.9.0
+

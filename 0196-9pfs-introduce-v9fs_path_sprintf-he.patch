@@ -1,0 +1,125 @@
+From c598dea99b94e78fbdc69fb8f4c27f5af14885b8 Mon Sep 17 00:00:00 2001
+From: Greg Kurz <groug@kaod.org>
+Date: Fri, 16 Sep 2016 08:56:15 +0200
+Subject: [PATCH] 9pfs: introduce v9fs_path_sprintf() helper
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+This helper is similar to v9fs_string_sprintf(), but it includes the
+terminating NUL character in the size field.
+
+This is to avoid doing v9fs_string_sprintf((V9fsString *) &path) and
+then bumping the size.
+
+Affected users are changed to use this new helper.
+
+Signed-off-by: Greg Kurz <groug@kaod.org>
+Reviewed-by: Cédric Le Goater <clg@kaod.org>
+(cherry picked from commit e3e83f2e2130a3afbd41a2893d23397f03f6d9d0)
+[BR: support patch for BSC#1034866]
+Signed-off-by: Bruce Rogers <brogers@suse.com>
+---
+ hw/9pfs/9p-local.c |  7 ++-----
+ hw/9pfs/9p-proxy.c |  7 ++-----
+ hw/9pfs/9p.c       | 19 ++++++++++++++++---
+ hw/9pfs/9p.h       |  1 +
+ 4 files changed, 21 insertions(+), 13 deletions(-)
+
+diff --git a/hw/9pfs/9p-local.c b/hw/9pfs/9p-local.c
+index 65563ea03e..ef24c1b3eb 100644
+--- a/hw/9pfs/9p-local.c
++++ b/hw/9pfs/9p-local.c
+@@ -1096,13 +1096,10 @@ static int local_name_to_path(FsContext *ctx, V9fsPath *dir_path,
+                               const char *name, V9fsPath *target)
+ {
+     if (dir_path) {
+-        v9fs_string_sprintf((V9fsString *)target, "%s/%s",
+-                            dir_path->data, name);
++        v9fs_path_sprintf(target, "%s/%s", dir_path->data, name);
+     } else {
+-        v9fs_string_sprintf((V9fsString *)target, "%s", name);
++        v9fs_path_sprintf(target, "%s", name);
+     }
+-    /* Bump the size for including terminating NULL */
+-    target->size++;
+     return 0;
+ }
+ 
+diff --git a/hw/9pfs/9p-proxy.c b/hw/9pfs/9p-proxy.c
+index d5587f91d5..3b8cfaf525 100644
+--- a/hw/9pfs/9p-proxy.c
++++ b/hw/9pfs/9p-proxy.c
+@@ -1033,13 +1033,10 @@ static int proxy_name_to_path(FsContext *ctx, V9fsPath *dir_path,
+                               const char *name, V9fsPath *target)
+ {
+     if (dir_path) {
+-        v9fs_string_sprintf((V9fsString *)target, "%s/%s",
+-                            dir_path->data, name);
++        v9fs_path_sprintf(target, "%s/%s", dir_path->data, name);
+     } else {
+-        v9fs_string_sprintf((V9fsString *)target, "%s", name);
++        v9fs_path_sprintf(target, "%s", name);
+     }
+-    /* Bump the size for including terminating NULL */
+-    target->size++;
+     return 0;
+ }
+ 
+diff --git a/hw/9pfs/9p.c b/hw/9pfs/9p.c
+index 56ba5bea7a..60bdb33e90 100644
+--- a/hw/9pfs/9p.c
++++ b/hw/9pfs/9p.c
+@@ -12,6 +12,7 @@
+  */
+ 
+ #include "qemu/osdep.h"
++#include <glib/gprintf.h>
+ #include "hw/virtio/virtio.h"
+ #include "hw/i386/pc.h"
+ #include "qapi/error.h"
+@@ -180,6 +181,20 @@ void v9fs_path_free(V9fsPath *path)
+     path->size = 0;
+ }
+ 
++
++void GCC_FMT_ATTR(2, 3)
++v9fs_path_sprintf(V9fsPath *path, const char *fmt, ...)
++{
++    va_list ap;
++
++    v9fs_path_free(path);
++
++    va_start(ap, fmt);
++    /* Bump the size for including terminating NULL */
++    path->size = g_vasprintf(&path->data, fmt, ap) + 1;
++    va_end(ap);
++}
++
+ void v9fs_path_copy(V9fsPath *lhs, V9fsPath *rhs)
+ {
+     v9fs_path_free(lhs);
+@@ -915,10 +930,8 @@ static void v9fs_fix_path(V9fsPath *dst, V9fsPath *src, int len)
+     V9fsPath str;
+     v9fs_path_init(&str);
+     v9fs_path_copy(&str, dst);
+-    v9fs_string_sprintf((V9fsString *)dst, "%s%s", src->data, str.data+len);
++    v9fs_path_sprintf(dst, "%s%s", src->data, str.data + len);
+     v9fs_path_free(&str);
+-    /* +1 to include terminating NULL */
+-    dst->size++;
+ }
+ 
+ static inline bool is_ro_export(FsContext *ctx)
+diff --git a/hw/9pfs/9p.h b/hw/9pfs/9p.h
+index d25a817110..47369d3468 100644
+--- a/hw/9pfs/9p.h
++++ b/hw/9pfs/9p.h
+@@ -315,6 +315,7 @@ static inline uint8_t v9fs_request_cancelled(V9fsPDU *pdu)
+ extern void v9fs_reclaim_fd(V9fsPDU *pdu);
+ extern void v9fs_path_init(V9fsPath *path);
+ extern void v9fs_path_free(V9fsPath *path);
++extern void v9fs_path_sprintf(V9fsPath *path, const char *fmt, ...);
+ extern void v9fs_path_copy(V9fsPath *lhs, V9fsPath *rhs);
+ extern int v9fs_name_to_path(V9fsState *s, V9fsPath *dirpath,
+                              const char *name, V9fsPath *path);

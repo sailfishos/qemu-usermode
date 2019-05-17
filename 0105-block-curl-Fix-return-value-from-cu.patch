@@ -1,0 +1,63 @@
+From 49817ea77859f93582dee177fe4c5a21429b01c4 Mon Sep 17 00:00:00 2001
+From: Max Reitz <mreitz@redhat.com>
+Date: Tue, 25 Oct 2016 04:54:29 +0200
+Subject: [PATCH] block/curl: Fix return value from curl_read_cb
+
+While commit 38bbc0a580f9f10570b1d1b5d3e92f0e6feb2970 is correct in that
+the callback is supposed to return the number of bytes handled; what it
+does not mention is that libcurl will throw an error if the callback did
+not "handle" all of the data passed to it.
+
+Therefore, if the callback receives some data that it cannot handle
+(either because the receive buffer has not been set up yet or because it
+would not fit into the receive buffer) and we have to ignore it, we
+still have to report that the data has been handled.
+
+Obviously, this should not happen normally. But it does happen at least
+for FTP connections where some data (that we do not expect) may be
+generated when the connection is established.
+
+Cc: qemu-stable@nongnu.org
+Signed-off-by: Max Reitz <mreitz@redhat.com>
+Reviewed-by: Eric Blake <eblake@redhat.com>
+Message-id: 20161025025431.24714-3-mreitz@redhat.com
+Signed-off-by: Jeff Cody <jcody@redhat.com>
+(cherry picked from commit 4e7676571bccb42dd49b5efbb91ac49077ea5197)
+[BR: BSC#1013341]
+Signed-off-by: Bruce Rogers <brogers@suse.com>
+---
+ block/curl.c | 11 +++++++----
+ 1 file changed, 7 insertions(+), 4 deletions(-)
+
+diff --git a/block/curl.c b/block/curl.c
+index b298d23ad6..c8ad4ad95a 100644
+--- a/block/curl.c
++++ b/block/curl.c
+@@ -207,12 +207,13 @@ static size_t curl_read_cb(void *ptr, size_t size, size_t nmemb, void *opaque)
+ 
+     DPRINTF("CURL: Just reading %zd bytes\n", realsize);
+ 
+-    if (!s || !s->orig_buf)
+-        return 0;
++    if (!s || !s->orig_buf) {
++        goto read_end;
++    }
+ 
+     if (s->buf_off >= s->buf_len) {
+         /* buffer full, read nothing */
+-        return 0;
++        goto read_end;
+     }
+     realsize = MIN(realsize, s->buf_len - s->buf_off);
+     memcpy(s->orig_buf + s->buf_off, ptr, realsize);
+@@ -233,7 +234,9 @@ static size_t curl_read_cb(void *ptr, size_t size, size_t nmemb, void *opaque)
+         }
+     }
+ 
+-    return realsize;
++read_end:
++    /* curl will error out if we do not return this value */
++    return size * nmemb;
+ }
+ 
+ static int curl_find_buf(BDRVCURLState *s, size_t start, size_t len,

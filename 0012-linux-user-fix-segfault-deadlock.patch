@@ -1,0 +1,43 @@
+From 0b4c7b3388d69eed74e64664311b519b8552f2c9 Mon Sep 17 00:00:00 2001
+From: Alexander Graf <agraf@suse.de>
+Date: Fri, 13 Jan 2012 17:05:41 +0100
+Subject: [PATCH] linux-user: fix segfault deadlock
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+When entering the guest we take a lock to ensure that nobody else messes
+with our TB chaining while we're doing it. If we get a segfault inside that
+code, we manage to work on, but will not unlock the lock.
+
+This patch forces unlocking of that lock in the segv handler. I'm not sure
+this is the right approach though. Maybe we should rather make sure we don't
+segfault in the code? I would greatly appreciate someone more intelligible
+than me to look at this :).
+
+Example code to trigger this is at: http://csgraf.de/tmp/conftest.c
+
+Reported-by: Fabio Erculiani <lxnay@sabayon.org>
+Signed-off-by: Alexander Graf <agraf@suse.de>
+[AF: Drop spinlock_safe_unlock() and switch to tb_lock_reset() (bonzini)]
+Signed-off-by: Andreas Färber <afaerber@suse.de>
+Signed-off-by: Bruce Rogers <brogers@suse.com>
+---
+ user-exec.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/user-exec.c b/user-exec.c
+index d8d597bafe..f8b7752671 100644
+--- a/user-exec.c
++++ b/user-exec.c
+@@ -94,6 +94,10 @@ static inline int handle_cpu_signal(uintptr_t pc, unsigned long address,
+     printf("qemu: SIGSEGV pc=0x%08lx address=%08lx w=%d oldset=0x%08lx\n",
+            pc, address, is_write, *(unsigned long *)old_set);
+ #endif
++
++    /* Maybe we're still holding the TB fiddling lock? */
++    tb_lock_reset();
++
+     /* XXX: locking issue */
+     if (is_write && h2g_valid(address)
+         && page_unprotect(h2g(address), pc, puc)) {

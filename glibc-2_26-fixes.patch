@@ -1,0 +1,76 @@
+diff --git a/linux-user/strace.c b/linux-user/strace.c
+index 0810c85f..6751d99a 100644
+--- a/linux-user/strace.c
++++ b/linux-user/strace.c
+@@ -4,6 +4,9 @@
+ #include <sys/sem.h>
+ #include <sys/shm.h>
+ #include <sys/select.h>
++#if __GLIBC__ >= 2 && __GLIBC_MINOR__ >= 26
++#include <sys/sysmacros.h>
++#endif
+ #include <sys/mount.h>
+ #include <sys/mman.h>
+ #include <sched.h>
+diff --git a/qga/commands-posix.c b/qga/commands-posix.c
+index 2ae37255..de641325 100644
+--- a/qga/commands-posix.c
++++ b/qga/commands-posix.c
+@@ -13,6 +13,9 @@
+ 
+ #include "qemu/osdep.h"
+ #include <glib.h>
++#if __GLIBC__ >= 2 && __GLIBC_MINOR__ >= 26
++#include <sys/sysmacros.h>
++#endif
+ #include <sys/ioctl.h>
+ #include <sys/wait.h>
+ #include <dirent.h>
+diff --git a/user-exec.c b/user-exec.c
+index d8d597ba..6fe35e76 100644
+--- a/user-exec.c
++++ b/user-exec.c
+@@ -57,7 +57,7 @@ static void exception_action(CPUState *cpu)
+ void cpu_resume_from_signal(CPUState *cpu, void *puc)
+ {
+ #ifdef __linux__
+-    struct ucontext *uc = puc;
++    struct ucontext_t *uc = puc;
+ #elif defined(__OpenBSD__)
+     struct sigcontext *uc = puc;
+ #endif
+@@ -171,7 +171,7 @@ int cpu_signal_handler(int host_signum, void *pinfo,
+ #elif defined(__OpenBSD__)
+     struct sigcontext *uc = puc;
+ #else
+-    struct ucontext *uc = puc;
++    struct ucontext_t *uc = puc;
+ #endif
+     unsigned long pc;
+     int trapno;
+@@ -194,9 +194,9 @@ int cpu_signal_handler(int host_signum, void *pinfo,
+ 
+ #ifdef __NetBSD__
+ #define PC_sig(context)       _UC_MACHINE_PC(context)
+-#define TRAP_sig(context)     ((context)->uc_mcontext.__gregs[_REG_TRAPNO])
+-#define ERROR_sig(context)    ((context)->uc_mcontext.__gregs[_REG_ERR])
+-#define MASK_sig(context)     ((context)->uc_sigmask)
++#define TRAP_sig(context)     (((struct ucontext_t *) (context))->uc_mcontext.__gregs[_REG_TRAPNO])
++#define ERROR_sig(context)    (((struct ucontext_t *) (context))->uc_mcontext.__gregs[_REG_ERR])
++#define MASK_sig(context)     (((struct ucontext_t *) (context))->uc_sigmask)
+ #elif defined(__OpenBSD__)
+ #define PC_sig(context)       ((context)->sc_rip)
+ #define TRAP_sig(context)     ((context)->sc_trapno)
+diff --git a/util/memfd.c b/util/memfd.c
+index 7c406914..1f3de727 100644
+--- a/util/memfd.c
++++ b/util/memfd.c
+@@ -40,7 +40,7 @@
+ #include <sys/syscall.h>
+ #include <asm/unistd.h>
+ 
+-static int memfd_create(const char *name, unsigned int flags)
++int memfd_create(const char *name, unsigned int flags)
+ {
+ #ifdef __NR_memfd_create
+     return syscall(__NR_memfd_create, name, flags);

@@ -1,0 +1,75 @@
+From 008f043652007b3e1397dcc67421e70b016eab3a Mon Sep 17 00:00:00 2001
+From: Alberto Garcia <berto@igalia.com>
+Date: Fri, 13 May 2016 11:20:54 +0300
+Subject: [PATCH] gtk: don't leak the GtkBorder with VTE 0.36
+
+When gtk_widget_style_get() is used to get the "inner-border" style
+property, it returns a copy of the GtkBorder which must be freed by
+the caller.
+
+This patch also fixes a warning about the unused 'padding' structure
+with VTE 0.36.
+
+Signed-off-by: Alberto Garcia <berto@igalia.com>
+Message-id: 1463127654-5171-1-git-send-email-berto@igalia.com
+Cc: Cole Robinson <crobinso@redhat.com>
+Cc: Gerd Hoffmann <kraxel@redhat.com>
+
+[ kraxel: adapted to changes in ui patch queue ]
+
+Signed-off-by: Gerd Hoffmann <kraxel@redhat.com>
+(cherry picked from commit 6978dc4adcdf27722aa6f9e13f88a903b30a3f8d)
+[BR: BSC#1008519]
+Signed-off-by: Bruce Rogers <brogers@suse.com>
+---
+ ui/gtk.c | 23 +++++++++++++----------
+ 1 file changed, 13 insertions(+), 10 deletions(-)
+
+diff --git a/ui/gtk.c b/ui/gtk.c
+index 28e7d28fa8..633a89335f 100644
+--- a/ui/gtk.c
++++ b/ui/gtk.c
+@@ -328,17 +328,22 @@ static void gd_update_geometry_hints(VirtualConsole *vc)
+ #if defined(CONFIG_VTE)
+     } else if (vc->type == GD_VC_VTE) {
+         VteTerminal *term = VTE_TERMINAL(vc->vte.terminal);
+-        GtkBorder *ib;
++        GtkBorder padding = { 0 };
+ 
+ #if VTE_CHECK_VERSION(0, 37, 0)
+-        GtkBorder padding;
+         gtk_style_context_get_padding(
+                 gtk_widget_get_style_context(vc->vte.terminal),
+                 gtk_widget_get_state_flags(vc->vte.terminal),
+                 &padding);
+-        ib = &padding;
+ #else
+-        gtk_widget_style_get(vc->vte.terminal, "inner-border", &ib, NULL);
++        {
++            GtkBorder *ib = NULL;
++            gtk_widget_style_get(vc->vte.terminal, "inner-border", &ib, NULL);
++            if (ib) {
++                padding = *ib;
++                gtk_border_free(ib);
++            }
++        }
+ #endif
+ 
+         geo.width_inc  = vte_terminal_get_char_width(term);
+@@ -351,12 +356,10 @@ static void gd_update_geometry_hints(VirtualConsole *vc)
+         geo.min_height = geo.height_inc * VC_TERM_Y_MIN;
+         mask |= GDK_HINT_MIN_SIZE;
+ 
+-        if (ib) {
+-            geo.base_width  += ib->left + ib->right;
+-            geo.base_height += ib->top + ib->bottom;
+-            geo.min_width   += ib->left + ib->right;
+-            geo.min_height  += ib->top + ib->bottom;
+-        }
++        geo.base_width  += padding.left + padding.right;
++        geo.base_height += padding.top + padding.bottom;
++        geo.min_width   += padding.left + padding.right;
++        geo.min_height  += padding.top + padding.bottom;
+         geo_widget = vc->vte.terminal;
+ #endif
+     }

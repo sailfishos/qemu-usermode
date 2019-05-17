@@ -1,0 +1,132 @@
+From 817864c94dbdd54a9da6b2b2db001a593de65f51 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Andreas=20F=C3=A4rber?= <afaerber@suse.de>
+Date: Thu, 24 Sep 2015 19:21:11 +0200
+Subject: [PATCH] string-input-visitor: Fix uint64 parsing
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+All integers would get parsed by strtoll(), not handling the case of
+UINT64 properties with the most significient bit set.
+
+Implement a .type_uint64 visitor callback, reusing the existing
+parse_str() code through a new argument, using strtoull().
+
+As this is a bug fix, it intentionally ignores checkpatch warnings to
+prefer the use of qemu_strto[u]ll() over strto[u]ll().
+
+Cc: qemu-stable@nongnu.org
+Signed-off-by: Andreas Färber <afaerber@suse.de>
+---
+ qapi/string-input-visitor.c | 62 +++++++++++++++++++++++++++++++++++----------
+ 1 file changed, 49 insertions(+), 13 deletions(-)
+
+diff --git a/qapi/string-input-visitor.c b/qapi/string-input-visitor.c
+index 5ea2d77b5a..30711b8114 100644
+--- a/qapi/string-input-visitor.c
++++ b/qapi/string-input-visitor.c
+@@ -44,7 +44,7 @@ static void free_range(void *range, void *dummy)
+     g_free(range);
+ }
+ 
+-static void parse_str(StringInputVisitor *siv, Error **errp)
++static void parse_str(StringInputVisitor *siv, bool u64, Error **errp)
+ {
+     char *str = (char *) siv->string;
+     long long start, end;
+@@ -57,7 +57,11 @@ static void parse_str(StringInputVisitor *siv, Error **errp)
+ 
+     do {
+         errno = 0;
+-        start = strtoll(str, &endptr, 0);
++        if (u64) {
++            start = strtoull(str, &endptr, 0);
++        } else {
++            start = strtoll(str, &endptr, 0);
++        }
+         if (errno == 0 && endptr > str) {
+             if (*endptr == '\0') {
+                 cur = g_malloc0(sizeof(*cur));
+@@ -70,7 +74,11 @@ static void parse_str(StringInputVisitor *siv, Error **errp)
+             } else if (*endptr == '-') {
+                 str = endptr + 1;
+                 errno = 0;
+-                end = strtoll(str, &endptr, 0);
++                if (u64) {
++                    end = strtoull(str, &endptr, 0);
++                } else {
++                    end = strtoll(str, &endptr, 0);
++                }
+                 if (errno == 0 && endptr > str && start <= end &&
+                     (start > INT64_MAX - 65536 ||
+                      end < start + 65536)) {
+@@ -129,7 +137,7 @@ start_list(Visitor *v, const char *name, Error **errp)
+ {
+     StringInputVisitor *siv = to_siv(v);
+ 
+-    parse_str(siv, errp);
++    parse_str(siv, false, errp);
+ 
+     siv->cur_range = g_list_first(siv->ranges);
+     if (siv->cur_range) {
+@@ -195,7 +203,7 @@ static void parse_type_int64(Visitor *v, const char *name, int64_t *obj,
+         return;
+     }
+ 
+-    parse_str(siv, errp);
++    parse_str(siv, false, errp);
+ 
+     if (!siv->ranges) {
+         goto error;
+@@ -229,15 +237,43 @@ error:
+ static void parse_type_uint64(Visitor *v, const char *name, uint64_t *obj,
+                               Error **errp)
+ {
+-    /* FIXME: parse_type_int64 mishandles values over INT64_MAX */
+-    int64_t i;
+-    Error *err = NULL;
+-    parse_type_int64(v, name, &i, &err);
+-    if (err) {
+-        error_propagate(errp, err);
+-    } else {
+-        *obj = i;
++    StringInputVisitor *siv = to_siv(v);
++
++    if (!siv->string) {
++        error_setg(errp, QERR_INVALID_PARAMETER_TYPE, name ? name : "null",
++                   "integer");
++        return;
++    }
++
++    parse_str(siv, true, errp);
++
++    if (!siv->ranges) {
++        goto error;
+     }
++
++    if (!siv->cur_range) {
++        Range *r;
++
++        siv->cur_range = g_list_first(siv->ranges);
++        if (!siv->cur_range) {
++            goto error;
++        }
++
++        r = siv->cur_range->data;
++        if (!r) {
++            goto error;
++        }
++
++        siv->cur = r->begin;
++    }
++
++    *obj = siv->cur;
++    siv->cur++;
++    return;
++
++error:
++    error_setg(errp, QERR_INVALID_PARAMETER_VALUE, name,
++               "a uint64 value or range");
+ }
+ 
+ static void parse_type_size(Visitor *v, const char *name, uint64_t *obj,

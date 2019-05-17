@@ -1,0 +1,39 @@
+From cf2c3154009ee58830a2835389e983d1f49003b5 Mon Sep 17 00:00:00 2001
+From: Li Qiang <liqiang6-s@360.cn>
+Date: Mon, 17 Oct 2016 14:13:58 +0200
+Subject: [PATCH] 9pfs: fix potential host memory leak in v9fs_read
+
+In 9pfs read dispatch function, it doesn't free two QEMUIOVector
+object thus causing potential memory leak. This patch avoid this.
+
+Signed-off-by: Li Qiang <liqiang6-s@360.cn>
+Signed-off-by: Greg Kurz <groug@kaod.org>
+(cherry picked from commit e95c9a493a5a8d6f969e86c9f19f80ffe6587e19)
+[BR: CVE-2016-8577 BSC#1003893]
+Signed-off-by: Bruce Rogers <brogers@suse.com>
+---
+ hw/9pfs/9p.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/hw/9pfs/9p.c b/hw/9pfs/9p.c
+index 028dbc372b..d948162d2b 100644
+--- a/hw/9pfs/9p.c
++++ b/hw/9pfs/9p.c
+@@ -1807,14 +1807,15 @@ static void v9fs_read(void *opaque)
+             if (len < 0) {
+                 /* IO error return the error */
+                 err = len;
+-                goto out;
++                goto out_free_iovec;
+             }
+         } while (count < max_count && len > 0);
+         err = pdu_marshal(pdu, offset, "d", count);
+         if (err < 0) {
+-            goto out;
++            goto out_free_iovec;
+         }
+         err += offset + count;
++out_free_iovec:
+         qemu_iovec_destroy(&qiov);
+         qemu_iovec_destroy(&qiov_full);
+     } else if (fidp->fid_type == P9_FID_XATTR) {
