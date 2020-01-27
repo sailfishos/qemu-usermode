@@ -14,22 +14,22 @@ Source1:    qemu-binfmt-conf.sh
 
 # fix for sb2 (sb2 needs to hook open, openat):
 Patch0: 0001-Revert-linux-user-Use-safe_syscall-for-open-and-open.patch
+Patch3: 0002-Revert-linux-user-Use-safe_syscall-for-execve-syscal.patch
+Patch4: 0003-Revert-linux-user-Use-safe_syscall-wrapper-for-send-.patch
+Patch5: 0004-Revert-linux-user-Use-safe_syscall-wrapper-for-accep.patch
+Patch6: 0005-Revert-linux-user-Use-safe_syscall-for-wait-system-c.patch
+Patch7: 0006-Revert-linux-user-Use-safe_syscall-wrapper-for-conne.patch
 # Fix opus tests:
-Patch1: 0002-Revert-target-arm-Use-vector-operations-for-saturati.patch
+Patch1: 0007-Revert-target-arm-Use-vector-operations-for-saturati.patch
 # fix for "kill -INT", etc. on qemu emulated binaries, e.g. ninja_test
-Patch2: 0003-linux-user-Also-ignore-attempts-to-block-SIGTERM-SIG.patch
-# fixes for sb2 (sb2 needs to hook these methods):
-Patch3: 0004-Revert-linux-user-Use-safe_syscall-for-execve-syscal.patch
-Patch4: 0005-Revert-linux-user-Use-safe_syscall-wrapper-for-send-.patch
-Patch5: 0006-Revert-linux-user-Use-safe_syscall-wrapper-for-accep.patch
-Patch6: 0007-Revert-linux-user-Use-safe_syscall-for-wait-system-c.patch
-Patch7: 0008-Revert-linux-user-Use-safe_syscall-wrapper-for-conne.patch
+Patch2: 0008-linux-user-Also-ignore-attempts-to-block-SIGTERM-SIG.patch
 # crash fixes for qemu 4.2.0
 Patch8: 0009-Revert-tcg-i386-Fix-dupi-dupm-for-avx1-and-32-bit-ho.patch
 Patch9: 0010-Revert-tcg-i386-Implement-tcg_out_dupm_vec.patch
 # Fix libgcrypt tests:
 Patch10: 0011-Revert-target-arm-Use-gvec-for-VSRI-VSLI.patch
-
+# For obs getting stuck in getrandom
+Patch11: 0012-crypto-check-if-getrandom-is-available-properly.patch
 
 BuildRequires:  pkgconfig(ext2fs)
 BuildRequires:  pkgconfig(glib-2.0)
@@ -64,6 +64,7 @@ QEMU is an extremely well-performing CPU emulator that allows you to choose betw
 %patch8 -p1
 %patch9 -p1
 %patch10 -p1
+%patch11 -p1
 
 %build
 CFLAGS=`echo $CFLAGS | sed 's|-fno-omit-frame-pointer||g'` ; export CFLAGS ;

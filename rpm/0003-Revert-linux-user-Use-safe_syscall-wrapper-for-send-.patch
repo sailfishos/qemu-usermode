@@ -1,7 +1,7 @@
-From 6172d0a5e35f050899bd1c3a0bcf541a0c90c67b Mon Sep 17 00:00:00 2001
+From 1a6e81a5067c110dcfdb7bf98ef720a0c87dfa50 Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Wed, 22 Jan 2020 10:57:53 +0200
-Subject: [PATCH 05/11] Revert "linux-user: Use safe_syscall wrapper for send*
+Subject: [PATCH 03/12] Revert "linux-user: Use safe_syscall wrapper for send*
  and recv* syscalls"
 
 This reverts commit 666875306e03e1f94e1d4c808502585c10abc69a.

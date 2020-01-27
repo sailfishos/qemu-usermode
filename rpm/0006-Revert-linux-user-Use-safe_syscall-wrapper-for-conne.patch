@@ -1,7 +1,7 @@
-From 73a34ba40b7a06cc79da851e60d359a10b9b2e7e Mon Sep 17 00:00:00 2001
+From 613750e5239c5290387c205ed17966bd5d0c4d2b Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Wed, 22 Jan 2020 11:13:13 +0200
-Subject: [PATCH 08/11] Revert "linux-user: Use safe_syscall wrapper for
+Subject: [PATCH 06/12] Revert "linux-user: Use safe_syscall wrapper for
  connect syscall"
 
 This reverts commit 2a3c7619288af9cfcc09a233dce911bf80849dfb.

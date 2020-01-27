@@ -1,7 +1,7 @@
-From aea43b11bca1a62cac1caec400b82eb3aa0ab020 Mon Sep 17 00:00:00 2001
+From 1f789323fbe1d522e80949fbcd8b2b2893ae1b91 Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Thu, 23 Jan 2020 14:46:53 +0000
-Subject: [PATCH 11/11] Revert "target/arm: Use gvec for VSRI, VSLI"
+Subject: [PATCH 11/12] Revert "target/arm: Use gvec for VSRI, VSLI"
 
 This reverts commit f3cd8218d1d3e534877ce3f3cb61c6757d10f9df.
 

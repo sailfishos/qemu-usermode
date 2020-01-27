@@ -1,7 +1,7 @@
-From b72ce5a553a90980a141b297c734b789205be53b Mon Sep 17 00:00:00 2001
+From 39317cadadeb88965f3b2b592c6f8e59570cc862 Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Wed, 22 Jan 2020 11:00:44 +0200
-Subject: [PATCH 07/11] Revert "linux-user: Use safe_syscall for wait system
+Subject: [PATCH 05/12] Revert "linux-user: Use safe_syscall for wait system
  calls"
 
 This reverts commit 4af80a3783950380df85ecca78aea3e3bad2e846.
