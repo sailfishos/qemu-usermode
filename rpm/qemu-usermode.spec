@@ -5,7 +5,6 @@ Name:       qemu-usermode
 Summary:    Universal CPU emulator
 Version:    4.2.0
 Release:    1
-Group:      System/Emulators/PC
 License:    GPLv2 and BSD and MIT and CC-BY
 ExclusiveArch:  %{ix86}
 URL:        https://www.qemu.org/
@@ -53,21 +52,7 @@ QEMU is an extremely well-performing CPU emulator that allows you to choose betw
 
 
 %prep
-%setup -q -n qemu-usermode-%{version}/upstream
-
-%patch0 -p1
-%patch1 -p1
-%patch2 -p1
-%patch3 -p1
-%patch4 -p1
-%patch5 -p1
-%patch6 -p1
-%patch7 -p1
-%patch8 -p1
-%patch9 -p1
-%patch10 -p1
-%patch11 -p1
-%patch12 -p1
+%autosetup -p1 -n qemu-usermode-%{version}/upstream
 
 %build
 CFLAGS=`echo $CFLAGS | sed 's|-fno-omit-frame-pointer||g'` ; export CFLAGS ;
