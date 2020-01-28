@@ -1,14 +1,14 @@
-From 2deed7751e47d520b366222f2254fa8ebdaee478 Mon Sep 17 00:00:00 2001
+From 903bc24d99cf90269f2ec87d43a67c6a54a58b74 Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Mon, 27 Jan 2020 20:34:21 +0200
-Subject: [PATCH 12/12] crypto: check if getrandom is available properly
+Subject: [PATCH 12/13] crypto: check if getrandom is available properly
 
 ---
  crypto/random-platform.c | 16 ++++++++++++----
  1 file changed, 12 insertions(+), 4 deletions(-)
 
 diff --git a/crypto/random-platform.c b/crypto/random-platform.c
-index f92f969..b45f25d 100644
+index f92f96987d..b45f25db24 100644
 --- a/crypto/random-platform.c
 +++ b/crypto/random-platform.c
 @@ -31,7 +31,8 @@ static HCRYPTPROV hCryptProv;
@@ -60,5 +60,5 @@ index f92f969..b45f25d 100644
                  error_setg_errno(errp, errno, "getrandom");
                  return -1;
 -- 
-1.8.3-rc3
+2.20.1
 

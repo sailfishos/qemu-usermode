@@ -1,7 +1,7 @@
-From 39317cadadeb88965f3b2b592c6f8e59570cc862 Mon Sep 17 00:00:00 2001
+From 7cac60f00d0c38521bb8729bcfeeb9f03e177bdf Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Wed, 22 Jan 2020 11:00:44 +0200
-Subject: [PATCH 05/12] Revert "linux-user: Use safe_syscall for wait system
+Subject: [PATCH 05/13] Revert "linux-user: Use safe_syscall for wait system
  calls"
 
 This reverts commit 4af80a3783950380df85ecca78aea3e3bad2e846.
@@ -10,7 +10,7 @@ This reverts commit 4af80a3783950380df85ecca78aea3e3bad2e846.
  1 file changed, 3 insertions(+), 7 deletions(-)
 
 diff --git a/linux-user/syscall.c b/linux-user/syscall.c
-index 96ed793..9a95158 100644
+index 96ed7937af..9a95158cf5 100644
 --- a/linux-user/syscall.c
 +++ b/linux-user/syscall.c
 @@ -743,10 +743,6 @@ static type safe_##name(type1 arg1, type2 arg2, type3 arg3, type4 arg4, \
@@ -52,5 +52,5 @@ index 96ed793..9a95158 100644
                  if (status_ptr && ret) {
                      status = host_to_target_waitstatus(status);
 -- 
-1.8.3-rc3
+2.20.1
 

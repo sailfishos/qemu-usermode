@@ -1,7 +1,7 @@
-From 1f789323fbe1d522e80949fbcd8b2b2893ae1b91 Mon Sep 17 00:00:00 2001
+From 5afeb3606ec1806e23aca4da9b0e57afbe3a5ce3 Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Thu, 23 Jan 2020 14:46:53 +0000
-Subject: [PATCH 11/12] Revert "target/arm: Use gvec for VSRI, VSLI"
+Subject: [PATCH 11/13] Revert "target/arm: Use gvec for VSRI, VSLI"
 
 This reverts commit f3cd8218d1d3e534877ce3f3cb61c6757d10f9df.
 
@@ -9,13 +9,13 @@ Conflicts:
 	slirp
 	target/arm/translate.h
 ---
- target/arm/translate-a64.c | 154 ++++++++++++++++++++++++++++++++++++++++++++-
- target/arm/translate.c     |  90 +++++++++++++++++++-------
+ target/arm/translate-a64.c | 154 ++++++++++++++++++++++++++++++++++++-
+ target/arm/translate.c     |  90 ++++++++++++++++------
  target/arm/translate.h     |   2 -
  3 files changed, 221 insertions(+), 25 deletions(-)
 
 diff --git a/target/arm/translate-a64.c b/target/arm/translate-a64.c
-index 86ef140..ccbde2d 100644
+index 86ef140d29..ccbde2dede 100644
 --- a/target/arm/translate-a64.c
 +++ b/target/arm/translate-a64.c
 @@ -9991,10 +9991,87 @@ static void disas_simd_scalar_two_reg_misc(DisasContext *s, uint32_t insn)
@@ -202,7 +202,7 @@ index 86ef140..ccbde2d 100644
          gen_gvec_fn2i(s, is_q, rd, rn, shift, tcg_gen_gvec_shli, size);
      }
 diff --git a/target/arm/translate.c b/target/arm/translate.c
-index 50b12c8..560f48c 100644
+index 50b12c8fd3..560f48c38b 100644
 --- a/target/arm/translate.c
 +++ b/target/arm/translate.c
 @@ -4406,7 +4406,7 @@ static int disas_neon_data_insn(DisasContext *s, uint32_t insn)
@@ -347,7 +347,7 @@ index 50b12c8..560f48c 100644
                          neon_store_reg(rd, pass, tmp);
                      }
 diff --git a/target/arm/translate.h b/target/arm/translate.h
-index 579d5cb..06f5fd9 100644
+index 579d5cbb96..06f5fd9b29 100644
 --- a/target/arm/translate.h
 +++ b/target/arm/translate.h
 @@ -276,8 +276,6 @@ extern const GVecGen3 mls_op[4];
@@ -360,5 +360,5 @@ index 579d5cb..06f5fd9 100644
  
  /*
 -- 
-1.8.3-rc3
+2.20.1
 

@@ -1,0 +1,237 @@
+From ac910f8a07dcb01618f84cd984540297bcc8b586 Mon Sep 17 00:00:00 2001
+From: Frajo Haider <f_haider@gmx.at>
+Date: Tue, 28 Jan 2020 13:39:19 +0000
+Subject: [PATCH 13/13] Revert "tcg: Add INDEX_op_dupm_vec"
+
+This reverts commit 37ee55a081b7863ffab2151068dd1b2f11376914.
+
+Conflicts:
+	tcg/tcg-op-gvec.c
+---
+ tcg/aarch64/tcg-target.inc.c |  4 --
+ tcg/i386/tcg-target.inc.c    |  4 --
+ tcg/tcg-op-gvec.c            | 86 ++++++++++++++++++------------------
+ tcg/tcg-op-vec.c             | 11 -----
+ tcg/tcg-op.h                 |  1 -
+ tcg/tcg-opc.h                |  1 -
+ tcg/tcg.c                    |  1 -
+ 7 files changed, 42 insertions(+), 66 deletions(-)
+
+diff --git a/tcg/aarch64/tcg-target.inc.c b/tcg/aarch64/tcg-target.inc.c
+index 3f921015d3..f669338c24 100644
+--- a/tcg/aarch64/tcg-target.inc.c
++++ b/tcg/aarch64/tcg-target.inc.c
+@@ -2306,9 +2306,6 @@ static void tcg_out_vec_op(TCGContext *s, TCGOpcode opc,
+     case INDEX_op_st_vec:
+         tcg_out_st(s, type, a0, a1, a2);
+         break;
+-    case INDEX_op_dupm_vec:
+-        tcg_out_dupm_vec(s, type, vece, a0, a1, a2);
+-        break;
+     case INDEX_op_add_vec:
+         tcg_out_insn(s, 3616, ADD, is_q, vece, a0, a1, a2);
+         break;
+@@ -2737,7 +2734,6 @@ static const TCGTargetOpDef *tcg_target_op_def(TCGOpcode op)
+         return &w_w;
+     case INDEX_op_ld_vec:
+     case INDEX_op_st_vec:
+-    case INDEX_op_dupm_vec:
+         return &w_r;
+     case INDEX_op_dup_vec:
+         return &w_wr;
+diff --git a/tcg/i386/tcg-target.inc.c b/tcg/i386/tcg-target.inc.c
+index c7ead57118..97dbc96731 100644
+--- a/tcg/i386/tcg-target.inc.c
++++ b/tcg/i386/tcg-target.inc.c
+@@ -2886,9 +2886,6 @@ static void tcg_out_vec_op(TCGContext *s, TCGOpcode opc,
+     case INDEX_op_st_vec:
+         tcg_out_st(s, type, a0, a1, a2);
+         break;
+-    case INDEX_op_dupm_vec:
+-        tcg_out_dupm_vec(s, type, vece, a0, a1, a2);
+-        break;
+ 
+     case INDEX_op_x86_shufps_vec:
+         insn = OPC_SHUFPS;
+@@ -3175,7 +3172,6 @@ static const TCGTargetOpDef *tcg_target_op_def(TCGOpcode op)
+ 
+     case INDEX_op_ld_vec:
+     case INDEX_op_st_vec:
+-    case INDEX_op_dupm_vec:
+         return &x_r;
+ 
+     case INDEX_op_add_vec:
+diff --git a/tcg/tcg-op-gvec.c b/tcg/tcg-op-gvec.c
+index 5c95ecd51c..90da4b776f 100644
+--- a/tcg/tcg-op-gvec.c
++++ b/tcg/tcg-op-gvec.c
+@@ -395,41 +395,6 @@ static TCGType choose_vector_type(const TCGOpcode *list, unsigned vece,
+     return 0;
+ }
+ 
+-static void do_dup_store(TCGType type, uint32_t dofs, uint32_t oprsz,
+-                         uint32_t maxsz, TCGv_vec t_vec)
+-{
+-    uint32_t i = 0;
+-
+-    switch (type) {
+-    case TCG_TYPE_V256:
+-        /*
+-         * Recall that ARM SVE allows vector sizes that are not a
+-         * power of 2, but always a multiple of 16.  The intent is
+-         * that e.g. size == 80 would be expanded with 2x32 + 1x16.
+-         */
+-        for (; i + 32 <= oprsz; i += 32) {
+-            tcg_gen_stl_vec(t_vec, cpu_env, dofs + i, TCG_TYPE_V256);
+-        }
+-        /* fallthru */
+-    case TCG_TYPE_V128:
+-        for (; i + 16 <= oprsz; i += 16) {
+-            tcg_gen_stl_vec(t_vec, cpu_env, dofs + i, TCG_TYPE_V128);
+-        }
+-        break;
+-    case TCG_TYPE_V64:
+-        for (; i < oprsz; i += 8) {
+-            tcg_gen_stl_vec(t_vec, cpu_env, dofs + i, TCG_TYPE_V64);
+-        }
+-        break;
+-    default:
+-        g_assert_not_reached();
+-    }
+-
+-    if (oprsz < maxsz) {
+-        expand_clr(dofs + oprsz, maxsz - oprsz);
+-    }
+-}
+-
+ /* Set OPRSZ bytes at DOFS to replications of IN_32, IN_64 or IN_C.
+  * Only one of IN_32 or IN_64 may be set;
+  * IN_C is used if IN_32 and IN_64 are unset.
+@@ -469,11 +434,49 @@ static void do_dup(unsigned vece, uint32_t dofs, uint32_t oprsz,
+         } else if (in_64) {
+             tcg_gen_dup_i64_vec(vece, t_vec, in_64);
+         } else {
+-            tcg_gen_dupi_vec(vece, t_vec, in_c);
++            switch (vece) {
++            case MO_8:
++                tcg_gen_dup8i_vec(t_vec, in_c);
++                break;
++            case MO_16:
++                tcg_gen_dup16i_vec(t_vec, in_c);
++                break;
++            case MO_32:
++                tcg_gen_dup32i_vec(t_vec, in_c);
++                break;
++            default:
++                tcg_gen_dup64i_vec(t_vec, in_c);
++                break;
++            }
+         }
+-        do_dup_store(type, dofs, oprsz, maxsz, t_vec);
++
++        i = 0;
++        switch (type) {
++        case TCG_TYPE_V256:
++            /* Recall that ARM SVE allows vector sizes that are not a
++             * power of 2, but always a multiple of 16.  The intent is
++             * that e.g. size == 80 would be expanded with 2x32 + 1x16.
++             */
++            for (; i + 32 <= oprsz; i += 32) {
++                tcg_gen_stl_vec(t_vec, cpu_env, dofs + i, TCG_TYPE_V256);
++            }
++            /* fallthru */
++        case TCG_TYPE_V128:
++            for (; i + 16 <= oprsz; i += 16) {
++                tcg_gen_stl_vec(t_vec, cpu_env, dofs + i, TCG_TYPE_V128);
++            }
++            break;
++        case TCG_TYPE_V64:
++            for (; i < oprsz; i += 8) {
++                tcg_gen_stl_vec(t_vec, cpu_env, dofs + i, TCG_TYPE_V64);
++            }
++            break;
++        default:
++            g_assert_not_reached();
++        }
++
+         tcg_temp_free_vec(t_vec);
+-        return;
++        goto done;
+     }
+ 
+     /* Otherwise, inline with an integer type, unless "large".  */
+@@ -1449,12 +1452,7 @@ void tcg_gen_gvec_dup_mem(unsigned vece, uint32_t dofs, uint32_t aofs,
+     check_size_align(oprsz, maxsz, dofs);
+     if (vece <= MO_64) {
+         TCGType type = choose_vector_type(NULL, vece, oprsz, 0);
+-        if (type != 0) {
+-            TCGv_vec t_vec = tcg_temp_new_vec(type);
+-            tcg_gen_dup_mem_vec(vece, t_vec, cpu_env, aofs);
+-            do_dup_store(type, dofs, oprsz, maxsz, t_vec);
+-            tcg_temp_free_vec(t_vec);
+-        } else if (vece <= MO_32) {
++        if (vece <= MO_32) {
+             TCGv_i32 in = tcg_temp_new_i32();
+             switch (vece) {
+             case MO_8:
+diff --git a/tcg/tcg-op-vec.c b/tcg/tcg-op-vec.c
+index 6714991bf4..d5e4097765 100644
+--- a/tcg/tcg-op-vec.c
++++ b/tcg/tcg-op-vec.c
+@@ -312,17 +312,6 @@ void tcg_gen_dup_i32_vec(unsigned vece, TCGv_vec r, TCGv_i32 a)
+     vec_gen_2(INDEX_op_dup_vec, type, vece, ri, ai);
+ }
+ 
+-void tcg_gen_dup_mem_vec(unsigned vece, TCGv_vec r, TCGv_ptr b,
+-                         tcg_target_long ofs)
+-{
+-    TCGArg ri = tcgv_vec_arg(r);
+-    TCGArg bi = tcgv_ptr_arg(b);
+-    TCGTemp *rt = arg_temp(ri);
+-    TCGType type = rt->base_type;
+-
+-    vec_gen_3(INDEX_op_dupm_vec, type, vece, ri, bi, ofs);
+-}
+-
+ static void vec_gen_ldst(TCGOpcode opc, TCGv_vec r, TCGv_ptr b, TCGArg o)
+ {
+     TCGArg ri = tcgv_vec_arg(r);
+diff --git a/tcg/tcg-op.h b/tcg/tcg-op.h
+index 4af272daa5..082fe6c644 100644
+--- a/tcg/tcg-op.h
++++ b/tcg/tcg-op.h
+@@ -967,7 +967,6 @@ void tcg_gen_atomic_umax_fetch_i64(TCGv_i64, TCGv, TCGv_i64, TCGArg, MemOp);
+ void tcg_gen_mov_vec(TCGv_vec, TCGv_vec);
+ void tcg_gen_dup_i32_vec(unsigned vece, TCGv_vec, TCGv_i32);
+ void tcg_gen_dup_i64_vec(unsigned vece, TCGv_vec, TCGv_i64);
+-void tcg_gen_dup_mem_vec(unsigned vece, TCGv_vec, TCGv_ptr, tcg_target_long);
+ void tcg_gen_dup8i_vec(TCGv_vec, uint32_t);
+ void tcg_gen_dup16i_vec(TCGv_vec, uint32_t);
+ void tcg_gen_dup32i_vec(TCGv_vec, uint32_t);
+diff --git a/tcg/tcg-opc.h b/tcg/tcg-opc.h
+index 9288a04946..9421d247e5 100644
+--- a/tcg/tcg-opc.h
++++ b/tcg/tcg-opc.h
+@@ -222,7 +222,6 @@ DEF(dup2_vec, 1, 2, 0, IMPLVEC | IMPL(TCG_TARGET_REG_BITS == 32))
+ 
+ DEF(ld_vec, 1, 1, 1, IMPLVEC)
+ DEF(st_vec, 0, 2, 1, IMPLVEC)
+-DEF(dupm_vec, 1, 1, 1, IMPLVEC)
+ 
+ DEF(add_vec, 1, 2, 0, IMPLVEC)
+ DEF(sub_vec, 1, 2, 0, IMPLVEC)
+diff --git a/tcg/tcg.c b/tcg/tcg.c
+index 5475d49ed1..fc1c43d1a7 100644
+--- a/tcg/tcg.c
++++ b/tcg/tcg.c
+@@ -1625,7 +1625,6 @@ bool tcg_op_supported(TCGOpcode op)
+     case INDEX_op_mov_vec:
+     case INDEX_op_dup_vec:
+     case INDEX_op_dupi_vec:
+-    case INDEX_op_dupm_vec:
+     case INDEX_op_ld_vec:
+     case INDEX_op_st_vec:
+     case INDEX_op_add_vec:
+-- 
+2.20.1
+

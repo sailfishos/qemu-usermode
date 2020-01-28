@@ -1,15 +1,15 @@
-From f625d7f07510615299e29beb5523bebac27c55bb Mon Sep 17 00:00:00 2001
+From 0262c48832c50b6339590e2fc8464e63db32dbfc Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Thu, 23 Jan 2020 14:29:04 +0000
-Subject: [PATCH 10/12] Revert "tcg/i386: Implement tcg_out_dupm_vec"
+Subject: [PATCH 10/13] Revert "tcg/i386: Implement tcg_out_dupm_vec"
 
 This reverts commit 1e262b49b5331441f697461e4305fe06719758a7.
 ---
- tcg/i386/tcg-target.inc.c | 57 ++++++++++++-----------------------------------
+ tcg/i386/tcg-target.inc.c | 57 ++++++++++-----------------------------
  1 file changed, 14 insertions(+), 43 deletions(-)
 
 diff --git a/tcg/i386/tcg-target.inc.c b/tcg/i386/tcg-target.inc.c
-index 722cf81..c7ead57 100644
+index 722cf81e22..c7ead57118 100644
 --- a/tcg/i386/tcg-target.inc.c
 +++ b/tcg/i386/tcg-target.inc.c
 @@ -358,6 +358,7 @@ static inline int tcg_target_const_match(tcg_target_long val, TCGType type,
@@ -116,5 +116,5 @@ index 722cf81..c7ead57 100644
  }
  
 -- 
-1.8.3-rc3
+2.20.1
 

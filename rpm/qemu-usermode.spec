@@ -30,6 +30,8 @@ Patch9: 0010-Revert-tcg-i386-Implement-tcg_out_dupm_vec.patch
 Patch10: 0011-Revert-target-arm-Use-gvec-for-VSRI-VSLI.patch
 # For obs getting stuck in getrandom
 Patch11: 0012-crypto-check-if-getrandom-is-available-properly.patch
+# fix libgcyrpt basic test with 4.2.0 (and probably other failures)
+Patch12: 0013-Revert-tcg-Add-INDEX_op_dupm_vec.patch
 
 BuildRequires:  pkgconfig(ext2fs)
 BuildRequires:  pkgconfig(glib-2.0)
@@ -65,6 +67,7 @@ QEMU is an extremely well-performing CPU emulator that allows you to choose betw
 %patch9 -p1
 %patch10 -p1
 %patch11 -p1
+%patch12 -p1
 
 %build
 CFLAGS=`echo $CFLAGS | sed 's|-fno-omit-frame-pointer||g'` ; export CFLAGS ;

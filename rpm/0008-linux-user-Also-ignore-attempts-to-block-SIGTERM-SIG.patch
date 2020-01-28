@@ -1,7 +1,7 @@
-From caaf943c41a562378500cc9997bbe7876d788688 Mon Sep 17 00:00:00 2001
+From 0078bc953e58a7630e18017f1a1c6ba06106f72c Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Thu, 23 Jan 2020 00:13:32 +0000
-Subject: [PATCH 08/12] linux-user: Also ignore attempts to block SIGTERM,
+Subject: [PATCH 08/13] linux-user: Also ignore attempts to block SIGTERM,
  SIGINT and SIGHUP
 
 ---
@@ -9,7 +9,7 @@ Subject: [PATCH 08/12] linux-user: Also ignore attempts to block SIGTERM,
  1 file changed, 3 insertions(+)
 
 diff --git a/linux-user/signal.c b/linux-user/signal.c
-index 5ca6d62..36c7b25 100644
+index 5ca6d62b15..36c7b251a1 100644
 --- a/linux-user/signal.c
 +++ b/linux-user/signal.c
 @@ -225,6 +225,9 @@ int do_sigprocmask(int how, const sigset_t *set, sigset_t *oldset)
@@ -23,5 +23,5 @@ index 5ca6d62..36c7b25 100644
      return 0;
  }
 -- 
-1.8.3-rc3
+2.20.1
 
