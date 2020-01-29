@@ -36,6 +36,8 @@ Patch13: 0014-Revert-tcg-Add-INDEX_op_dupm_vec.patch
 Patch14: 0015-qemu-usermode-make-sure-mode-is-passed-to-openat-if-.patch
 # make sure utimensat from glibc is being used (see sb2 fixes above)
 Patch15: 0016-Revert-util-drop-old-utimensat-compat-code.patch
+# one more revert for sb2
+Patch16: 0017-Revert-linux-user-Use-safe_syscall-wrapper-for-fcntl.patch
 
 BuildRequires:  pkgconfig(ext2fs)
 BuildRequires:  pkgconfig(glib-2.0)
