@@ -1,7 +1,7 @@
-From eb545aff3c6db801201fea5403bb0b14af8340f3 Mon Sep 17 00:00:00 2001
+From 7c35eba18a667b2359f28108ed298465d2826e6e Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Wed, 22 Jan 2020 23:59:11 +0200
-Subject: [PATCH 07/13] Revert "target/arm: Use vector operations for
+Subject: [PATCH 08/14] Revert "target/arm: Use vector operations for
  saturation"
 
 This reverts commit 89e68b575e138d0af1435f11a8ffcd8779c237bd.

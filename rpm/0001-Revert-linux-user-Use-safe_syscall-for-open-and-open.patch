@@ -1,7 +1,7 @@
-From fa54233fe94b9b939ed03059414a2573756fae70 Mon Sep 17 00:00:00 2001
+From 8558ab909d1745cec9f092c15315cfe4fc54bfd2 Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Wed, 22 Jan 2020 10:47:20 +0200
-Subject: [PATCH 01/13] Revert "linux-user: Use safe_syscall for open and
+Subject: [PATCH 01/14] Revert "linux-user: Use safe_syscall for open and
  openat system calls"
 
 This reverts commit c10a07387b77b94d8f7233f3b5bb559211d4e49a.

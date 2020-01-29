@@ -1,0 +1,35 @@
+From 5e653a0581d6ae83cebaa15a6f33db4c5b540219 Mon Sep 17 00:00:00 2001
+From: Frajo Haider <f_haider@gmx.at>
+Date: Wed, 29 Jan 2020 12:49:43 +0200
+Subject: [PATCH 07/14] Revert "linux-user: Use direct syscall for utimensat"
+
+This reverts commit 700fa58e4b9100d6bd77df06d2e5d1f457720c4d.
+---
+ linux-user/syscall.c | 11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/linux-user/syscall.c b/linux-user/syscall.c
+index d5bc5b8cbc..12ea40138e 100644
+--- a/linux-user/syscall.c
++++ b/linux-user/syscall.c
+@@ -388,7 +388,16 @@ static int sys_openat(int dirfd, const char *pathname, int flags, mode_t mode)
+ }
+ 
+ #ifdef TARGET_NR_utimensat
+-#if defined(__NR_utimensat)
++#ifdef CONFIG_UTIMENSAT
++static int sys_utimensat(int dirfd, const char *pathname,
++    const struct timespec times[2], int flags)
++{
++    if (pathname == NULL)
++        return futimens(dirfd, times);
++    else
++        return utimensat(dirfd, pathname, times, flags);
++}
++#elif defined(__NR_utimensat)
+ #define __NR_sys_utimensat __NR_utimensat
+ _syscall4(int,sys_utimensat,int,dirfd,const char *,pathname,
+           const struct timespec *,tsp,int,flags)
+-- 
+2.20.1
+
