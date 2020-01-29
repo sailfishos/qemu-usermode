@@ -1,20 +1,20 @@
-From 7c35eba18a667b2359f28108ed298465d2826e6e Mon Sep 17 00:00:00 2001
+From fdedc2c49c4408b4c4cbd0dd5e1089fa613425aa Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Wed, 22 Jan 2020 23:59:11 +0200
-Subject: [PATCH 08/14] Revert "target/arm: Use vector operations for
+Subject: [PATCH 08/15] Revert "target/arm: Use vector operations for
  saturation"
 
 This reverts commit 89e68b575e138d0af1435f11a8ffcd8779c237bd.
 ---
- target/arm/helper.h        |  33 -------
- target/arm/translate-a64.c |  36 +++----
- target/arm/translate.c     | 188 +++++--------------------------------
+ target/arm/helper.h        |  33 --------
+ target/arm/translate-a64.c |  36 +++++----
+ target/arm/translate.c     | 188 ++++++---------------------------------------
  target/arm/translate.h     |   4 -
- target/arm/vec_helper.c    | 130 -------------------------
+ target/arm/vec_helper.c    | 130 -------------------------------
  5 files changed, 44 insertions(+), 347 deletions(-)
 
 diff --git a/target/arm/helper.h b/target/arm/helper.h
-index 3d4ec267a2..9818dfb9f2 100644
+index 3d4ec26..9818dfb 100644
 --- a/target/arm/helper.h
 +++ b/target/arm/helper.h
 @@ -647,39 +647,6 @@ DEF_HELPER_FLAGS_6(gvec_fmla_idx_s, TCG_CALL_NO_RWG,
@@ -58,7 +58,7 @@ index 3d4ec267a2..9818dfb9f2 100644
                     void, ptr, ptr, ptr, ptr, i32)
  DEF_HELPER_FLAGS_5(gvec_fmlal_a64, TCG_CALL_NO_RWG,
 diff --git a/target/arm/translate-a64.c b/target/arm/translate-a64.c
-index d4bebbe629..86ef140d29 100644
+index d4bebbe..86ef140 100644
 --- a/target/arm/translate-a64.c
 +++ b/target/arm/translate-a64.c
 @@ -11075,22 +11075,6 @@ static void disas_simd_3same_int(DisasContext *s, uint32_t insn)
@@ -119,7 +119,7 @@ index d4bebbe629..86ef140d29 100644
              {
                  static NeonGenTwoOpFn * const fns[3][2] = {
 diff --git a/target/arm/translate.c b/target/arm/translate.c
-index 4d5d4bd888..50b12c8fd3 100644
+index 4d5d4bd..50b12c8 100644
 --- a/target/arm/translate.c
 +++ b/target/arm/translate.c
 @@ -4389,158 +4389,6 @@ const GVecGen3 cmtst_op[4] = {
@@ -345,7 +345,7 @@ index 4d5d4bd888..50b12c8fd3 100644
              GEN_NEON_INTEGER_OP(shl);
              break;
 diff --git a/target/arm/translate.h b/target/arm/translate.h
-index dd24f91f26..579d5cbb96 100644
+index dd24f91..579d5cb 100644
 --- a/target/arm/translate.h
 +++ b/target/arm/translate.h
 @@ -278,10 +278,6 @@ extern const GVecGen2i ssra_op[4];
@@ -360,7 +360,7 @@ index dd24f91f26..579d5cbb96 100644
  
  /*
 diff --git a/target/arm/vec_helper.c b/target/arm/vec_helper.c
-index dedef62403..be3271659f 100644
+index dedef62..be32716 100644
 --- a/target/arm/vec_helper.c
 +++ b/target/arm/vec_helper.c
 @@ -769,136 +769,6 @@ DO_FMLA_IDX(gvec_fmla_idx_d, float64, )
@@ -501,5 +501,5 @@ index dedef62403..be3271659f 100644
   * Convert float16 to float32, raising no exceptions and
   * preserving exceptional values, including SNaN.
 -- 
-2.20.1
+1.8.3-rc3
 

@@ -1,7 +1,7 @@
-From 52676ed518694886b89738d558ef4416b2bdbe6f Mon Sep 17 00:00:00 2001
+From 6ce026bd7ddb32af4248c8a4272fe33e27a90019 Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Wed, 22 Jan 2020 10:59:47 +0200
-Subject: [PATCH 04/14] Revert "linux-user: Use safe_syscall wrapper for accept
+Subject: [PATCH 04/15] Revert "linux-user: Use safe_syscall wrapper for accept
  and accept4 syscalls"
 
 This reverts commit ff6dc130794bcd5b2033bc50262a7720285a74c7.
@@ -10,7 +10,7 @@ This reverts commit ff6dc130794bcd5b2033bc50262a7720285a74c7.
  1 file changed, 15 insertions(+), 4 deletions(-)
 
 diff --git a/linux-user/syscall.c b/linux-user/syscall.c
-index 5d6c87aad7..96ed7937af 100644
+index 5d6c87a..96ed793 100644
 --- a/linux-user/syscall.c
 +++ b/linux-user/syscall.c
 @@ -770,8 +770,6 @@ safe_syscall5(ssize_t, pwritev, int, fd, const struct iovec *, iov, int, iovcnt,
@@ -61,5 +61,5 @@ index 5d6c87aad7..96ed7937af 100644
          host_to_target_sockaddr(target_addr, addr, MIN(addrlen, ret_addrlen));
          if (put_user_u32(ret_addrlen, target_addrlen_addr)) {
 -- 
-2.20.1
+1.8.3-rc3
 

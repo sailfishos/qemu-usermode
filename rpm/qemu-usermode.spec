@@ -32,6 +32,8 @@ Patch11: 0012-Revert-target-arm-Use-gvec-for-VSRI-VSLI.patch
 Patch12: 0013-crypto-check-if-getrandom-is-available-properly.patch
 # fix libgcyrpt basic test with 4.2.0 (and probably other failures)
 Patch13: 0014-Revert-tcg-Add-INDEX_op_dupm_vec.patch
+# fix openat syscall (breaks e.g. bc build)
+Patch14: 0015-qemu-usermode-make-sure-mode-is-passed-to-openat-if-.patch
 
 BuildRequires:  pkgconfig(ext2fs)
 BuildRequires:  pkgconfig(glib-2.0)

@@ -1,0 +1,26 @@
+From c8ca4f9ecc3c3f705b004d7e361a42be75d04184 Mon Sep 17 00:00:00 2001
+From: Frajo Haider <f_haider@gmx.at>
+Date: Wed, 29 Jan 2020 11:12:24 +0000
+Subject: [PATCH 15/15] [qemu-usermode] make sure mode is passed to openat if
+ O_TMPFILE is specified. JB#45765
+
+---
+ linux-user/syscall.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/linux-user/syscall.c b/linux-user/syscall.c
+index 12ea401..26c80f6 100644
+--- a/linux-user/syscall.c
++++ b/linux-user/syscall.c
+@@ -381,7 +381,7 @@ static int sys_openat(int dirfd, const char *pathname, int flags, mode_t mode)
+    * open(2) has extra parameter 'mode' when called with
+    * flag O_CREAT.
+    */
+-  if ((flags & O_CREAT) != 0) {
++  if ((flags & O_CREAT) != 0 || ((flags) & O_TMPFILE) == O_TMPFILE) {
+       return (openat(dirfd, pathname, flags, mode));
+   }
+   return (openat(dirfd, pathname, flags));
+-- 
+1.8.3-rc3
+
