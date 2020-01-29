@@ -1,7 +1,7 @@
-From 6c2c5341b76e9727cde25280e34a39bfd3a61552 Mon Sep 17 00:00:00 2001
+From 22f3a5a6d805bce44863e5ccb4319e7ecc6c51a0 Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Wed, 29 Jan 2020 12:49:43 +0200
-Subject: [PATCH 07/15] Revert "linux-user: Use direct syscall for utimensat"
+Subject: [PATCH 07/16] Revert "linux-user: Use direct syscall for utimensat"
 
 This reverts commit 700fa58e4b9100d6bd77df06d2e5d1f457720c4d.
 ---

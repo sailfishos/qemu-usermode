@@ -34,6 +34,8 @@ Patch12: 0013-crypto-check-if-getrandom-is-available-properly.patch
 Patch13: 0014-Revert-tcg-Add-INDEX_op_dupm_vec.patch
 # fix openat syscall (breaks e.g. bc build)
 Patch14: 0015-qemu-usermode-make-sure-mode-is-passed-to-openat-if-.patch
+# make sure utimensat from glibc is being used (see sb2 fixes above)
+Patch15: 0016-Revert-util-drop-old-utimensat-compat-code.patch
 
 BuildRequires:  pkgconfig(ext2fs)
 BuildRequires:  pkgconfig(glib-2.0)

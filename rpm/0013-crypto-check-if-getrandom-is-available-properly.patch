@@ -1,7 +1,7 @@
-From b78a2fb9c22864e694146ed7f9b3bb51c41e20b0 Mon Sep 17 00:00:00 2001
+From 27902ccf61f501962f5841602abcad9d99ea89f3 Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Mon, 27 Jan 2020 20:34:21 +0200
-Subject: [PATCH 13/15] crypto: check if getrandom is available properly
+Subject: [PATCH 13/16] crypto: check if getrandom is available properly
 
 ---
  crypto/random-platform.c | 16 ++++++++++++----
