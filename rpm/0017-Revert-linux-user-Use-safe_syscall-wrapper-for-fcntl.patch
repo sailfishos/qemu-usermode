@@ -1,7 +1,7 @@
-From 4a3009c3e98c7c67cf3ba1aacca8a533f0b960e0 Mon Sep 17 00:00:00 2001
+From 0ffeb21b025cdc3b9f131f0e3deece6e8c0dff51 Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Wed, 29 Jan 2020 12:42:08 +0000
-Subject: [PATCH 17/17] Revert "linux-user: Use safe_syscall wrapper for fcntl"
+Subject: [PATCH 17/18] Revert "linux-user: Use safe_syscall wrapper for fcntl"
 
 This reverts commit 435da5e7092aa54e12044b9401b42c4a9333c74d.
 

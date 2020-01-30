@@ -1,7 +1,7 @@
-From 10b5ebe56a71913eb00241978ac6956e9e33a997 Mon Sep 17 00:00:00 2001
+From c097e9d61af51fedf44d5a8b4eea41a50a72bd8c Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Wed, 22 Jan 2020 10:59:47 +0200
-Subject: [PATCH 04/16] Revert "linux-user: Use safe_syscall wrapper for accept
+Subject: [PATCH 04/18] Revert "linux-user: Use safe_syscall wrapper for accept
  and accept4 syscalls"
 
 This reverts commit ff6dc130794bcd5b2033bc50262a7720285a74c7.

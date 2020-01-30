@@ -1,7 +1,7 @@
-From a0ea1b3374840810908866708a80b9b19d0c7ca4 Mon Sep 17 00:00:00 2001
+From 95137fc3c609b0397ad0328ef42a589fac27a13c Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Thu, 23 Jan 2020 14:28:06 +0000
-Subject: [PATCH 10/16] Revert "tcg/i386: Fix dupi/dupm for avx1 and 32-bit
+Subject: [PATCH 10/18] Revert "tcg/i386: Fix dupi/dupm for avx1 and 32-bit
  hosts"
 
 This reverts commit 7b60ef3264e9627ac6efb34e9a6130647e9b55c0.

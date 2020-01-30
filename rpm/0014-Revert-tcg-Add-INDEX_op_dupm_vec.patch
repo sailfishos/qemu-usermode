@@ -1,7 +1,7 @@
-From 9d9a03c9bc6527ebdc6274dad224561059be0dfe Mon Sep 17 00:00:00 2001
+From 22bde562330bbad6149a6e6729a2490404dfdb43 Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Tue, 28 Jan 2020 13:39:19 +0000
-Subject: [PATCH 14/16] Revert "tcg: Add INDEX_op_dupm_vec"
+Subject: [PATCH 14/18] Revert "tcg: Add INDEX_op_dupm_vec"
 
 This reverts commit 37ee55a081b7863ffab2151068dd1b2f11376914.
 

@@ -1,7 +1,7 @@
-From 1a464d4a8eec73e1a481c9b02787ce24ac9a79d3 Mon Sep 17 00:00:00 2001
+From 69ef874f2a2b6ce45c184905e22e0beb1475e8b0 Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Wed, 29 Jan 2020 11:21:54 +0000
-Subject: [PATCH 16/16] Revert "util: drop old utimensat() compat code"
+Subject: [PATCH 16/18] Revert "util: drop old utimensat() compat code"
 
 This reverts commit fcdcf1eed2fd26bfe836080755ba4322d3c1f2cc.
 

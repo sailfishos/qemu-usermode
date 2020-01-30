@@ -1,7 +1,7 @@
-From f1035bb69375180d64633c7ce4d4032fa9288e87 Mon Sep 17 00:00:00 2001
+From ec490a9455770826db836662414ad881be18919b Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Thu, 23 Jan 2020 00:13:32 +0000
-Subject: [PATCH 09/16] linux-user: Also ignore attempts to block SIGTERM,
+Subject: [PATCH 09/18] linux-user: Also ignore attempts to block SIGTERM,
  SIGINT and SIGHUP
 
 ---

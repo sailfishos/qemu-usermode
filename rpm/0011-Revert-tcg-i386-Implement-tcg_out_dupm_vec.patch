@@ -1,7 +1,7 @@
-From b4f47da302e76c4c18d402e1bba7dff158433c08 Mon Sep 17 00:00:00 2001
+From 9da799e9e96bfe226af01142bb9c7f908bfe49f9 Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Thu, 23 Jan 2020 14:29:04 +0000
-Subject: [PATCH 11/16] Revert "tcg/i386: Implement tcg_out_dupm_vec"
+Subject: [PATCH 11/18] Revert "tcg/i386: Implement tcg_out_dupm_vec"
 
 This reverts commit 1e262b49b5331441f697461e4305fe06719758a7.
 ---

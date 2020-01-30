@@ -1,8 +1,8 @@
-From c8ca4f9ecc3c3f705b004d7e361a42be75d04184 Mon Sep 17 00:00:00 2001
+From 06305b5dd6c36a3ffd6189245aa7cf1da2a253e3 Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Wed, 29 Jan 2020 11:12:24 +0000
-Subject: [PATCH 15/15] [qemu-usermode] make sure mode is passed to openat if
- O_TMPFILE is specified. JB#45765
+Subject: [PATCH 15/18] make sure mode is passed to openat if O_TMPFILE is
+ specified. JB#45765
 
 ---
  linux-user/syscall.c | 2 +-
