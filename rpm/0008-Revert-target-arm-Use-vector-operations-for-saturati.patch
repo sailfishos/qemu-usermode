@@ -1,22 +1,23 @@
-From ca522c8c683244c04dcbf2b480119b7d012b7cfe Mon Sep 17 00:00:00 2001
+From 95d2720faee2764ea069a076af66ac656b12f09b Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Wed, 22 Jan 2020 23:59:11 +0200
-Subject: [PATCH 2/9] Revert "target/arm: Use vector operations for saturation"
+Subject: [PATCH 08/18] Revert "target/arm: Use vector operations for
+ saturation"
 
 This reverts commit 89e68b575e138d0af1435f11a8ffcd8779c237bd.
 ---
- target/arm/helper.h        |  33 -------
- target/arm/translate-a64.c |  36 ++++----
- target/arm/translate.c     | 172 ++++++-------------------------------
+ target/arm/helper.h        |  33 --------
+ target/arm/translate-a64.c |  36 +++++----
+ target/arm/translate.c     | 188 ++++++---------------------------------------
  target/arm/translate.h     |   4 -
- target/arm/vec_helper.c    | 130 ----------------------------
- 5 files changed, 44 insertions(+), 331 deletions(-)
+ target/arm/vec_helper.c    | 130 -------------------------------
+ 5 files changed, 44 insertions(+), 347 deletions(-)
 
 diff --git a/target/arm/helper.h b/target/arm/helper.h
-index a09566f795..0a22c7e6a7 100644
+index 3d4ec26..9818dfb 100644
 --- a/target/arm/helper.h
 +++ b/target/arm/helper.h
-@@ -641,39 +641,6 @@ DEF_HELPER_FLAGS_6(gvec_fmla_idx_s, TCG_CALL_NO_RWG,
+@@ -647,39 +647,6 @@ DEF_HELPER_FLAGS_6(gvec_fmla_idx_s, TCG_CALL_NO_RWG,
  DEF_HELPER_FLAGS_6(gvec_fmla_idx_d, TCG_CALL_NO_RWG,
                     void, ptr, ptr, ptr, ptr, ptr, i32)
  
@@ -57,10 +58,10 @@ index a09566f795..0a22c7e6a7 100644
                     void, ptr, ptr, ptr, ptr, i32)
  DEF_HELPER_FLAGS_5(gvec_fmlal_a64, TCG_CALL_NO_RWG,
 diff --git a/target/arm/translate-a64.c b/target/arm/translate-a64.c
-index dcdeb80176..dbad73cc78 100644
+index d4bebbe..86ef140 100644
 --- a/target/arm/translate-a64.c
 +++ b/target/arm/translate-a64.c
-@@ -11230,22 +11230,6 @@ static void disas_simd_3same_int(DisasContext *s, uint32_t insn)
+@@ -11075,22 +11075,6 @@ static void disas_simd_3same_int(DisasContext *s, uint32_t insn)
      }
  
      switch (opcode) {
@@ -83,7 +84,7 @@ index dcdeb80176..dbad73cc78 100644
      case 0x0c: /* SMAX, UMAX */
          if (u) {
              gen_gvec_fn3(s, is_q, rd, rn, rm, tcg_gen_gvec_umax, size);
-@@ -11341,6 +11325,16 @@ static void disas_simd_3same_int(DisasContext *s, uint32_t insn)
+@@ -11186,6 +11170,16 @@ static void disas_simd_3same_int(DisasContext *s, uint32_t insn)
                  genfn = fns[size][u];
                  break;
              }
@@ -100,7 +101,7 @@ index dcdeb80176..dbad73cc78 100644
              case 0x2: /* SRHADD, URHADD */
              {
                  static NeonGenTwoOpFn * const fns[3][2] = {
-@@ -11361,6 +11355,16 @@ static void disas_simd_3same_int(DisasContext *s, uint32_t insn)
+@@ -11206,6 +11200,16 @@ static void disas_simd_3same_int(DisasContext *s, uint32_t insn)
                  genfn = fns[size][u];
                  break;
              }
@@ -118,10 +119,10 @@ index dcdeb80176..dbad73cc78 100644
              {
                  static NeonGenTwoOpFn * const fns[3][2] = {
 diff --git a/target/arm/translate.c b/target/arm/translate.c
-index d9d4e765ca..226f0650a0 100644
+index 4d5d4bd..50b12c8 100644
 --- a/target/arm/translate.c
 +++ b/target/arm/translate.c
-@@ -6172,142 +6172,6 @@ const GVecGen3 cmtst_op[4] = {
+@@ -4389,158 +4389,6 @@ const GVecGen3 cmtst_op[4] = {
        .vece = MO_64 },
  };
  
@@ -136,26 +137,30 @@ index d9d4e765ca..226f0650a0 100644
 -    tcg_temp_free_vec(x);
 -}
 -
+-static const TCGOpcode vecop_list_uqadd[] = {
+-    INDEX_op_usadd_vec, INDEX_op_cmp_vec, INDEX_op_add_vec, 0
+-};
+-
 -const GVecGen4 uqadd_op[4] = {
 -    { .fniv = gen_uqadd_vec,
 -      .fno = gen_helper_gvec_uqadd_b,
--      .opc = INDEX_op_usadd_vec,
 -      .write_aofs = true,
+-      .opt_opc = vecop_list_uqadd,
 -      .vece = MO_8 },
 -    { .fniv = gen_uqadd_vec,
 -      .fno = gen_helper_gvec_uqadd_h,
--      .opc = INDEX_op_usadd_vec,
 -      .write_aofs = true,
+-      .opt_opc = vecop_list_uqadd,
 -      .vece = MO_16 },
 -    { .fniv = gen_uqadd_vec,
 -      .fno = gen_helper_gvec_uqadd_s,
--      .opc = INDEX_op_usadd_vec,
 -      .write_aofs = true,
+-      .opt_opc = vecop_list_uqadd,
 -      .vece = MO_32 },
 -    { .fniv = gen_uqadd_vec,
 -      .fno = gen_helper_gvec_uqadd_d,
--      .opc = INDEX_op_usadd_vec,
 -      .write_aofs = true,
+-      .opt_opc = vecop_list_uqadd,
 -      .vece = MO_64 },
 -};
 -
@@ -170,25 +175,29 @@ index d9d4e765ca..226f0650a0 100644
 -    tcg_temp_free_vec(x);
 -}
 -
+-static const TCGOpcode vecop_list_sqadd[] = {
+-    INDEX_op_ssadd_vec, INDEX_op_cmp_vec, INDEX_op_add_vec, 0
+-};
+-
 -const GVecGen4 sqadd_op[4] = {
 -    { .fniv = gen_sqadd_vec,
 -      .fno = gen_helper_gvec_sqadd_b,
--      .opc = INDEX_op_ssadd_vec,
+-      .opt_opc = vecop_list_sqadd,
 -      .write_aofs = true,
 -      .vece = MO_8 },
 -    { .fniv = gen_sqadd_vec,
 -      .fno = gen_helper_gvec_sqadd_h,
--      .opc = INDEX_op_ssadd_vec,
+-      .opt_opc = vecop_list_sqadd,
 -      .write_aofs = true,
 -      .vece = MO_16 },
 -    { .fniv = gen_sqadd_vec,
 -      .fno = gen_helper_gvec_sqadd_s,
--      .opc = INDEX_op_ssadd_vec,
+-      .opt_opc = vecop_list_sqadd,
 -      .write_aofs = true,
 -      .vece = MO_32 },
 -    { .fniv = gen_sqadd_vec,
 -      .fno = gen_helper_gvec_sqadd_d,
--      .opc = INDEX_op_ssadd_vec,
+-      .opt_opc = vecop_list_sqadd,
 -      .write_aofs = true,
 -      .vece = MO_64 },
 -};
@@ -204,25 +213,29 @@ index d9d4e765ca..226f0650a0 100644
 -    tcg_temp_free_vec(x);
 -}
 -
+-static const TCGOpcode vecop_list_uqsub[] = {
+-    INDEX_op_ussub_vec, INDEX_op_cmp_vec, INDEX_op_sub_vec, 0
+-};
+-
 -const GVecGen4 uqsub_op[4] = {
 -    { .fniv = gen_uqsub_vec,
 -      .fno = gen_helper_gvec_uqsub_b,
--      .opc = INDEX_op_ussub_vec,
+-      .opt_opc = vecop_list_uqsub,
 -      .write_aofs = true,
 -      .vece = MO_8 },
 -    { .fniv = gen_uqsub_vec,
 -      .fno = gen_helper_gvec_uqsub_h,
--      .opc = INDEX_op_ussub_vec,
+-      .opt_opc = vecop_list_uqsub,
 -      .write_aofs = true,
 -      .vece = MO_16 },
 -    { .fniv = gen_uqsub_vec,
 -      .fno = gen_helper_gvec_uqsub_s,
--      .opc = INDEX_op_ussub_vec,
+-      .opt_opc = vecop_list_uqsub,
 -      .write_aofs = true,
 -      .vece = MO_32 },
 -    { .fniv = gen_uqsub_vec,
 -      .fno = gen_helper_gvec_uqsub_d,
--      .opc = INDEX_op_ussub_vec,
+-      .opt_opc = vecop_list_uqsub,
 -      .write_aofs = true,
 -      .vece = MO_64 },
 -};
@@ -238,25 +251,29 @@ index d9d4e765ca..226f0650a0 100644
 -    tcg_temp_free_vec(x);
 -}
 -
+-static const TCGOpcode vecop_list_sqsub[] = {
+-    INDEX_op_sssub_vec, INDEX_op_cmp_vec, INDEX_op_sub_vec, 0
+-};
+-
 -const GVecGen4 sqsub_op[4] = {
 -    { .fniv = gen_sqsub_vec,
 -      .fno = gen_helper_gvec_sqsub_b,
--      .opc = INDEX_op_sssub_vec,
+-      .opt_opc = vecop_list_sqsub,
 -      .write_aofs = true,
 -      .vece = MO_8 },
 -    { .fniv = gen_sqsub_vec,
 -      .fno = gen_helper_gvec_sqsub_h,
--      .opc = INDEX_op_sssub_vec,
+-      .opt_opc = vecop_list_sqsub,
 -      .write_aofs = true,
 -      .vece = MO_16 },
 -    { .fniv = gen_sqsub_vec,
 -      .fno = gen_helper_gvec_sqsub_s,
--      .opc = INDEX_op_sssub_vec,
+-      .opt_opc = vecop_list_sqsub,
 -      .write_aofs = true,
 -      .vece = MO_32 },
 -    { .fniv = gen_sqsub_vec,
 -      .fno = gen_helper_gvec_sqsub_d,
--      .opc = INDEX_op_sssub_vec,
+-      .opt_opc = vecop_list_sqsub,
 -      .write_aofs = true,
 -      .vece = MO_64 },
 -};
@@ -264,7 +281,7 @@ index d9d4e765ca..226f0650a0 100644
  /* Translate a NEON data processing instruction.  Return nonzero if the
     instruction is invalid.
     We process data in a mixture of 32-bit and 64-bit chunks.
-@@ -6491,18 +6355,6 @@ static int disas_neon_data_insn(DisasContext *s, uint32_t insn)
+@@ -4724,18 +4572,6 @@ static int disas_neon_data_insn(DisasContext *s, uint32_t insn)
              }
              return 0;
  
@@ -272,18 +289,18 @@ index d9d4e765ca..226f0650a0 100644
 -            tcg_gen_gvec_4(rd_ofs, offsetof(CPUARMState, vfp.qc),
 -                           rn_ofs, rm_ofs, vec_size, vec_size,
 -                           (u ? uqadd_op : sqadd_op) + size);
--            break;
+-            return 0;
 -
 -        case NEON_3R_VQSUB:
 -            tcg_gen_gvec_4(rd_ofs, offsetof(CPUARMState, vfp.qc),
 -                           rn_ofs, rm_ofs, vec_size, vec_size,
 -                           (u ? uqsub_op : sqsub_op) + size);
--            break;
+-            return 0;
 -
          case NEON_3R_VMUL: /* VMUL */
              if (u) {
                  /* Polynomial case allows only P8 and is handled below.  */
-@@ -6567,6 +6419,24 @@ static int disas_neon_data_insn(DisasContext *s, uint32_t insn)
+@@ -4800,6 +4636,24 @@ static int disas_neon_data_insn(DisasContext *s, uint32_t insn)
                  neon_load_reg64(cpu_V0, rn + pass);
                  neon_load_reg64(cpu_V1, rm + pass);
                  switch (op) {
@@ -308,7 +325,7 @@ index d9d4e765ca..226f0650a0 100644
                  case NEON_3R_VSHL:
                      if (u) {
                          gen_helper_neon_shl_u64(cpu_V0, cpu_V1, cpu_V0);
-@@ -6682,12 +6552,18 @@ static int disas_neon_data_insn(DisasContext *s, uint32_t insn)
+@@ -4915,12 +4769,18 @@ static int disas_neon_data_insn(DisasContext *s, uint32_t insn)
          case NEON_3R_VHADD:
              GEN_NEON_INTEGER_OP(hadd);
              break;
@@ -328,10 +345,10 @@ index d9d4e765ca..226f0650a0 100644
              GEN_NEON_INTEGER_OP(shl);
              break;
 diff --git a/target/arm/translate.h b/target/arm/translate.h
-index 912cc2a4a5..241a346cc6 100644
+index dd24f91..579d5cb 100644
 --- a/target/arm/translate.h
 +++ b/target/arm/translate.h
-@@ -248,10 +248,6 @@ extern const GVecGen2i ssra_op[4];
+@@ -278,10 +278,6 @@ extern const GVecGen2i ssra_op[4];
  extern const GVecGen2i usra_op[4];
  extern const GVecGen2i sri_op[4];
  extern const GVecGen2i sli_op[4];
@@ -343,7 +360,7 @@ index 912cc2a4a5..241a346cc6 100644
  
  /*
 diff --git a/target/arm/vec_helper.c b/target/arm/vec_helper.c
-index dedef62403..be3271659f 100644
+index dedef62..be32716 100644
 --- a/target/arm/vec_helper.c
 +++ b/target/arm/vec_helper.c
 @@ -769,136 +769,6 @@ DO_FMLA_IDX(gvec_fmla_idx_d, float64, )
@@ -484,5 +501,5 @@ index dedef62403..be3271659f 100644
   * Convert float16 to float32, raising no exceptions and
   * preserving exceptional values, including SNaN.
 -- 
-2.20.1
+1.8.3-rc3
 

@@ -1,18 +1,18 @@
-From 51d2823cc5fde73f7fd11b4843b0edb567e6c71b Mon Sep 17 00:00:00 2001
+From ec490a9455770826db836662414ad881be18919b Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Thu, 23 Jan 2020 00:13:32 +0000
-Subject: [PATCH 3/9] linux-user: Also ignore attempts to block SIGTERM, SIGINT
- and SIGHUP
+Subject: [PATCH 09/18] linux-user: Also ignore attempts to block SIGTERM,
+ SIGINT and SIGHUP
 
 ---
  linux-user/signal.c | 3 +++
  1 file changed, 3 insertions(+)
 
 diff --git a/linux-user/signal.c b/linux-user/signal.c
-index e2c0b37173..c2913af4d7 100644
+index 5ca6d62..36c7b25 100644
 --- a/linux-user/signal.c
 +++ b/linux-user/signal.c
-@@ -232,6 +232,9 @@ int do_sigprocmask(int how, const sigset_t *set, sigset_t *oldset)
+@@ -225,6 +225,9 @@ int do_sigprocmask(int how, const sigset_t *set, sigset_t *oldset)
          /* Silently ignore attempts to change blocking status of KILL or STOP */
          sigdelset(&ts->signal_mask, SIGKILL);
          sigdelset(&ts->signal_mask, SIGSTOP);
@@ -23,5 +23,5 @@ index e2c0b37173..c2913af4d7 100644
      return 0;
  }
 -- 
-2.20.1
+1.8.3-rc3
 

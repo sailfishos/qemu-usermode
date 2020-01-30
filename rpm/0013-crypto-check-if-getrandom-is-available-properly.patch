@@ -1,0 +1,64 @@
+From d2676f456e54504b18c31c936d6be4c298a694c2 Mon Sep 17 00:00:00 2001
+From: Frajo Haider <f_haider@gmx.at>
+Date: Mon, 27 Jan 2020 20:34:21 +0200
+Subject: [PATCH 13/18] crypto: check if getrandom is available properly
+
+---
+ crypto/random-platform.c | 16 ++++++++++++----
+ 1 file changed, 12 insertions(+), 4 deletions(-)
+
+diff --git a/crypto/random-platform.c b/crypto/random-platform.c
+index f92f969..b45f25d 100644
+--- a/crypto/random-platform.c
++++ b/crypto/random-platform.c
+@@ -31,7 +31,8 @@ static HCRYPTPROV hCryptProv;
+ #  include <sys/random.h>
+ # endif
+ /* This is -1 for getrandom(), or a file handle for /dev/{u,}random.  */
+-static int fd;
++static int fd = -1;
++static bool syscall_available = true;
+ #endif
+ 
+ int qcrypto_random_init(Error **errp)
+@@ -45,11 +46,15 @@ int qcrypto_random_init(Error **errp)
+     }
+ #else
+ # ifdef CONFIG_GETRANDOM
+-    if (getrandom(NULL, 0, 0) == 0) {
++    if (getrandom(NULL, 0, GRND_NONBLOCK) == 0) {
+         /* Use getrandom() */
+         fd = -1;
+         return 0;
++    } else if (errno == ENOSYS) {
++        syscall_available = false;
+     }
++    /* errno could also be EAGAIN in which case we will try
++     * getrandom later, in case it became available */
+     /* Fall through to /dev/urandom case.  */
+ # endif
+     fd = open("/dev/urandom", O_RDONLY | O_CLOEXEC);
+@@ -76,15 +81,18 @@ int qcrypto_random_bytes(void *buf,
+     }
+ #else
+ # ifdef CONFIG_GETRANDOM
+-    if (likely(fd < 0)) {
++    if (syscall_available) {
+         while (1) {
+-            ssize_t got = getrandom(buf, buflen, 0);
++            ssize_t got = getrandom(buf, buflen, GRND_NONBLOCK);
+             if (likely(got == buflen)) {
+                 return 0;
+             }
+             if (got >= 0) {
+                 buflen -= got;
+                 buf += got;
++            } else if (errno == EAGAIN && fd >= 0) {
++                /* not ready yet, fallback to urandom/random */
++                break;
+             } else if (errno != EINTR) {
+                 error_setg_errno(errp, errno, "getrandom");
+                 return -1;
+-- 
+1.8.3-rc3
+
