@@ -3,7 +3,7 @@
 
 Name:       qemu-usermode
 Summary:    Universal CPU emulator
-Version:    4.2.0
+Version:    5.0.0
 Release:    1
 License:    GPLv2 and BSD and MIT and CC-BY
 ExclusiveArch:  %{ix86}
@@ -16,30 +16,25 @@ Patch0: 0001-Revert-linux-user-Use-safe_syscall-for-open-and-open.patch
 Patch1: 0002-Revert-linux-user-Use-safe_syscall-for-execve-syscal.patch
 Patch2: 0003-Revert-linux-user-Use-safe_syscall-wrapper-for-send-.patch
 Patch3: 0004-Revert-linux-user-Use-safe_syscall-wrapper-for-accep.patch
-Patch4: 0005-Revert-linux-user-Use-safe_syscall-for-wait-system-c.patch
-Patch5: 0006-Revert-linux-user-Use-safe_syscall-wrapper-for-conne.patch
-Patch6: 0007-Revert-linux-user-Use-direct-syscall-for-utimensat.patch
-# Fix opus tests:
-Patch7: 0008-Revert-target-arm-Use-vector-operations-for-saturati.patch
+Patch4: 0006-Revert-linux-user-Use-safe_syscall-wrapper-for-conne.patch
+Patch5: 0007-Revert-linux-user-Use-direct-syscall-for-utimensat.patch
 # fix for "kill -INT", etc. on qemu emulated binaries, e.g. ninja_test
-Patch8: 0009-linux-user-Also-ignore-attempts-to-block-SIGTERM-SIG.patch
+Patch6: 0009-linux-user-Also-ignore-attempts-to-block-SIGTERM-SIG.patch
 # crash fixes for qemu 4.2.0
-Patch9: 0010-Revert-tcg-i386-Fix-dupi-dupm-for-avx1-and-32-bit-ho.patch
-Patch10: 0011-Revert-tcg-i386-Implement-tcg_out_dupm_vec.patch
-# Fix libgcrypt tests:
-Patch11: 0012-Revert-target-arm-Use-gvec-for-VSRI-VSLI.patch
+Patch7: 0010-Revert-tcg-i386-Fix-dupi-dupm-for-avx1-and-32-bit-ho.patch
+Patch8: 0011-Revert-tcg-i386-Implement-tcg_out_dupm_vec.patch
 # For obs getting stuck in getrandom
-Patch12: 0013-crypto-check-if-getrandom-is-available-properly.patch
+Patch9: 0013-crypto-check-if-getrandom-is-available-properly.patch
 # fix libgcyrpt basic test with 4.2.0 (and probably other failures)
-Patch13: 0014-Revert-tcg-Add-INDEX_op_dupm_vec.patch
+Patch10: 0014-Revert-tcg-Add-INDEX_op_dupm_vec.patch
 # fix openat syscall (breaks e.g. bc build)
-Patch14: 0015-make-sure-mode-is-passed-to-openat-if-O_TMPFILE-is-s.patch
+Patch11: 0015-make-sure-mode-is-passed-to-openat-if-O_TMPFILE-is-s.patch
 # make sure utimensat from glibc is being used (see sb2 fixes above)
-Patch15: 0016-Revert-util-drop-old-utimensat-compat-code.patch
+Patch12: 0016-Revert-util-drop-old-utimensat-compat-code.patch
 # one more revert for sb2
-Patch16: 0017-Revert-linux-user-Use-safe_syscall-wrapper-for-fcntl.patch
+Patch13: 0017-Revert-linux-user-Use-safe_syscall-wrapper-for-fcntl.patch
 # fix f_flags in statfs64
-Patch17: 0018-linux-user-Support-f_flags-in-statfs64-when-availabl.patch
+Patch14: 0018-linux-user-Support-f_flags-in-statfs64-when-availabl.patch
 
 BuildRequires:  pkgconfig(ext2fs)
 BuildRequires:  pkgconfig(glib-2.0)
@@ -75,6 +70,8 @@ CONFIGURE_FLAGS=" \
     --enable-linux-user \
     --disable-werror \
     --disable-strip \
+    --disable-zstd \
+    --disable-linux-io-uring \
     --target-list=$((for target in %{target_list}; do echo -n ${target}-linux-user,; done) | sed -e 's/,$//')"
 
 for mode in static dynamic; do
@@ -83,16 +80,17 @@ for mode in static dynamic; do
     if [ $mode = static ]; then
         ../configure --static $CONFIGURE_FLAGS --disable-tools
     else
-        ../configure $CONFIGURE_FLAGS
+        ../configure $CONFIGURE_FLAGS --enable-tools
     fi
-    make %{?jobs:-j%jobs}
+    make V=1 %{?_smp_mflags}
     cd ..
 done
 
 %install
 rm -rf %{buildroot}
-mkdir -p %{buildroot}/usr/sbin
-install -m 755 %{SOURCE1} $RPM_BUILD_ROOT/usr/sbin
+mkdir -p %{buildroot}%{_bindir}
+mkdir -p %{buildroot}%{_sbindir}
+install -m 755 %{SOURCE1} $RPM_BUILD_ROOT/%{_sbindir}
 
 for mode in static dynamic; do
     cd build-$mode
@@ -128,7 +126,6 @@ for regularfmt in %{binfmt_dir}/*; do
   cat $regularfmt | tr -d '\n' | sed "s/:$/-static:F/" > $staticfmt
 done
 
-
 %files
 %defattr(-,root,root,-)
 %{_bindir}/qemu-*-dynamic
@@ -137,7 +134,6 @@ done
 
 %package common
 Summary:  Universal CPU emulator (common utilities)
-Group:      System/Emulators/PC
 
 %description common
 This package provides common qemu utilities.
@@ -152,10 +148,10 @@ This package provides common qemu utilities.
 %{_bindir}/ivshmem-server
 %{_bindir}/qemu-edid
 %{_bindir}/elf2dmp
+%{_bindir}/qemu-storage-daemon
 
 %package static
 Summary:  Universal CPU emulator (static userspace emulators)
-Group:      System/Emulators/PC
 Requires: %{name}-common = %{version}
 
 %description static

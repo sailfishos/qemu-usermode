@@ -38,9 +38,9 @@ index 171c0ca..55a96ad 100644
  safe_syscall3(ssize_t, write, int, fd, const void *, buff, size_t, count)
 -safe_syscall4(int, openat, int, dirfd, const char *, pathname, \
 -              int, flags, mode_t, mode)
+ #if defined(TARGET_NR_wait4) || defined(TARGET_NR_waitpid)
  safe_syscall4(pid_t, wait4, pid_t, pid, int *, status, int, options, \
                struct rusage *, rusage)
- safe_syscall5(int, waitid, idtype_t, idtype, id_t, id, siginfo_t *, infop, \
 @@ -7198,7 +7208,7 @@ static int do_openat(void *cpu_env, int dirfd, const char *pathname, int flags,
  
      if (is_proc_myself(pathname, "exe")) {
