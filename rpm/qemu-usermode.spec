@@ -26,7 +26,7 @@ Patch8: 0011-Revert-tcg-i386-Implement-tcg_out_dupm_vec.patch
 # For obs getting stuck in getrandom
 Patch9: 0013-crypto-check-if-getrandom-is-available-properly.patch
 # fix libgcyrpt basic test with 4.2.0 (and probably other failures)
-Patch10: 0014-Revert-tcg-Add-INDEX_op_dupm_vec.patch
+# Patch10: 0014-Revert-tcg-Add-INDEX_op_dupm_vec.patch
 # fix openat syscall (breaks e.g. bc build)
 Patch11: 0015-make-sure-mode-is-passed-to-openat-if-O_TMPFILE-is-s.patch
 # make sure utimensat from glibc is being used (see sb2 fixes above)
@@ -35,6 +35,8 @@ Patch12: 0016-Revert-util-drop-old-utimensat-compat-code.patch
 Patch13: 0017-Revert-linux-user-Use-safe_syscall-wrapper-for-fcntl.patch
 # fix f_flags in statfs64
 Patch14: 0018-linux-user-Support-f_flags-in-statfs64-when-availabl.patch
+# https://bugs.launchpad.net/qemu/+bug/1880225
+Patch15: 0019-address-wrap-fix.patch
 
 BuildRequires:  pkgconfig(ext2fs)
 BuildRequires:  pkgconfig(glib-2.0)
