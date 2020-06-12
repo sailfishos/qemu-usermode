@@ -35,6 +35,8 @@ Patch12: 0016-Revert-util-drop-old-utimensat-compat-code.patch
 Patch13: 0017-Revert-linux-user-Use-safe_syscall-wrapper-for-fcntl.patch
 # fix f_flags in statfs64
 Patch14: 0018-linux-user-Support-f_flags-in-statfs64-when-availabl.patch
+# fix bit shift operations for 5.0.0
+Patch15: 0019-Revert-target-arm-Vectorize-USHL-and-SSHL.patch
 
 BuildRequires:  pkgconfig(ext2fs)
 BuildRequires:  pkgconfig(glib-2.0)
