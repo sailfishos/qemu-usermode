@@ -37,6 +37,8 @@ Patch13: 0017-Revert-linux-user-Use-safe_syscall-wrapper-for-fcntl.patch
 Patch14: 0018-linux-user-Support-f_flags-in-statfs64-when-availabl.patch
 # fix bit shift operations for 5.0.0
 Patch15: 0019-Revert-target-arm-Vectorize-USHL-and-SSHL.patch
+Patch16: 0020-Revert-target-arm-Use-vector-operations-for-saturati.patch
+Patch17: 0021-Revert-target-arm-Use-gvec-for-VSRI-VSLI.patch
 
 BuildRequires:  pkgconfig(ext2fs)
 BuildRequires:  pkgconfig(glib-2.0)
