@@ -48,7 +48,7 @@ BuildRequires:  flex
 BuildRequires:  curl-devel
 BuildRequires:  zlib-static
 BuildRequires:  glibc-static
-BuildRequires:  python-devel
+BuildRequires:  python3-devel
 BuildRequires:  glib2-static
 BuildRequires:  pcre-static
 # Hard requirement for version >= 1.3
