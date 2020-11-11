@@ -3,12 +3,12 @@
 
 Name:       qemu-usermode
 Summary:    Universal CPU emulator
-Version:    5.0.0
+Version:    5.0.1
 Release:    1
 License:    GPLv2 and BSD and MIT and CC-BY
 ExclusiveArch:  %{ix86}
 URL:        https://www.qemu.org/
-Source0:    https://www.qemu.org/download/qemu-usermode-%{version}.tar.xz
+Source0:    %{name}-%{version}.tar.xz
 Source1:    qemu-binfmt-conf.sh
 
 # fix for sb2 (sb2 needs to hook open, openat):
