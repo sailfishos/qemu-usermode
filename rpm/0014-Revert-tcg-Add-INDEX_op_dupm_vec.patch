@@ -62,10 +62,10 @@ index c7ead57..97dbc96 100644
  
      case INDEX_op_add_vec:
 diff --git a/tcg/tcg-op-gvec.c b/tcg/tcg-op-gvec.c
-index 5c95ecd..90da4b7 100644
+index 3707c0effb..3984f01697 100644
 --- a/tcg/tcg-op-gvec.c
 +++ b/tcg/tcg-op-gvec.c
-@@ -395,41 +395,6 @@ static TCGType choose_vector_type(const TCGOpcode *list, unsigned vece,
+@@ -459,53 +459,6 @@ static TCGType choose_vector_type(const TCGOpcode *list, unsigned vece,
      return 0;
  }
  
@@ -73,6 +73,18 @@ index 5c95ecd..90da4b7 100644
 -                         uint32_t maxsz, TCGv_vec t_vec)
 -{
 -    uint32_t i = 0;
+-
+-    tcg_debug_assert(oprsz >= 8);
+-
+-    /*
+-     * This may be expand_clr for the tail of an operation, e.g.
+-     * oprsz == 8 && maxsz == 64.  The first 8 bytes of this store
+-     * are misaligned wrt the maximum vector size, so do that first.
+-     */
+-    if (dofs & 8) {
+-        tcg_gen_stl_vec(t_vec, cpu_env, dofs + i, TCG_TYPE_V64);
+-        i += 8;
+-    }
 -
 -    switch (type) {
 -    case TCG_TYPE_V256:
@@ -107,7 +119,7 @@ index 5c95ecd..90da4b7 100644
  /* Set OPRSZ bytes at DOFS to replications of IN_32, IN_64 or IN_C.
   * Only one of IN_32 or IN_64 may be set;
   * IN_C is used if IN_32 and IN_64 are unset.
-@@ -469,11 +434,49 @@ static void do_dup(unsigned vece, uint32_t dofs, uint32_t oprsz,
+@@ -545,11 +498,49 @@ static void do_dup(unsigned vece, uint32_t dofs, uint32_t oprsz,
          } else if (in_64) {
              tcg_gen_dup_i64_vec(vece, t_vec, in_64);
          } else {
@@ -126,8 +138,7 @@ index 5c95ecd..90da4b7 100644
 +                tcg_gen_dup64i_vec(t_vec, in_c);
 +                break;
 +            }
-         }
--        do_dup_store(type, dofs, oprsz, maxsz, t_vec);
++        }
 +
 +        i = 0;
 +        switch (type) {
@@ -152,7 +163,8 @@ index 5c95ecd..90da4b7 100644
 +            break;
 +        default:
 +            g_assert_not_reached();
-+        }
+         }
+-        do_dup_store(type, dofs, oprsz, maxsz, t_vec);
 +
          tcg_temp_free_vec(t_vec);
 -        return;
@@ -160,7 +172,7 @@ index 5c95ecd..90da4b7 100644
      }
  
      /* Otherwise, inline with an integer type, unless "large".  */
-@@ -1449,12 +1452,7 @@ void tcg_gen_gvec_dup_mem(unsigned vece, uint32_t dofs, uint32_t aofs,
+@@ -1544,12 +1535,7 @@ void tcg_gen_gvec_dup_mem(unsigned vece, uint32_t dofs, uint32_t aofs,
      check_size_align(oprsz, maxsz, dofs);
      if (vece <= MO_64) {
          TCGType type = choose_vector_type(NULL, vece, oprsz, 0);
