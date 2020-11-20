@@ -3,7 +3,7 @@
 
 Name:       qemu-usermode
 Summary:    Universal CPU emulator
-Version:    5.0.0
+Version:    5.1.0
 Release:    1
 License:    GPLv2 and BSD and MIT and CC-BY
 ExclusiveArch:  %{ix86}
@@ -36,9 +36,12 @@ Patch13: 0017-Revert-linux-user-Use-safe_syscall-wrapper-for-fcntl.patch
 # fix f_flags in statfs64
 Patch14: 0018-linux-user-Support-f_flags-in-statfs64-when-availabl.patch
 # fix bit shift operations for 5.0.0
-Patch15: 0019-Revert-target-arm-Vectorize-USHL-and-SSHL.patch
-Patch16: 0020-Revert-target-arm-Use-vector-operations-for-saturati.patch
-Patch17: 0021-Revert-target-arm-Use-gvec-for-VSRI-VSLI.patch
+#Patch15: 0019-Revert-target-arm-Vectorize-USHL-and-SSHL.patch
+#Patch16: 0020-Revert-target-arm-Use-vector-operations-for-saturati.patch
+#Patch17: 0021-Revert-target-arm-Use-gvec-for-VSRI-VSLI.patch
+
+# Test patch to revert init_guest_commpage error
+Patch18: 0022-Revert-linux-user-completely-re-write-init_guest_spa.patch
 
 BuildRequires:  pkgconfig(ext2fs)
 BuildRequires:  pkgconfig(glib-2.0)
@@ -74,6 +77,7 @@ CONFIGURE_FLAGS=" \
     --enable-linux-user \
     --disable-werror \
     --disable-strip \
+    --enable-debug \
     --disable-zstd \
     --disable-linux-io-uring \
     --target-list=$((for target in %{target_list}; do echo -n ${target}-linux-user,; done) | sed -e 's/,$//')"
