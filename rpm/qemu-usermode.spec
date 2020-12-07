@@ -32,7 +32,7 @@ Patch13: 0017-Revert-linux-user-Use-safe_syscall-wrapper-for-fcntl.patch
 Patch14: 0018-linux-user-Support-f_flags-in-statfs64-when-availabl.patch
 
 Patch19: 0001-Force-AVX2-off.patch
-Patch20: 0001-linux-user-don-t-fail-if-commpage-is-not-usable.patch
+Patch20: 0001-linux-user-disable-commpage.patch
 
 BuildRequires:  pkgconfig(ext2fs)
 BuildRequires:  pkgconfig(glib-2.0)
