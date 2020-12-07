@@ -21,12 +21,12 @@ Patch5: 0007-Revert-linux-user-Use-direct-syscall-for-utimensat.patch
 # fix for "kill -INT", etc. on qemu emulated binaries, e.g. ninja_test
 Patch6: 0009-linux-user-Also-ignore-attempts-to-block-SIGTERM-SIG.patch
 # crash fixes for qemu 4.2.0
-Patch7: 0010-Revert-tcg-i386-Fix-dupi-dupm-for-avx1-and-32-bit-ho.patch
-Patch8: 0011-Revert-tcg-i386-Implement-tcg_out_dupm_vec.patch
+#Patch7: 0010-Revert-tcg-i386-Fix-dupi-dupm-for-avx1-and-32-bit-ho.patch
+#Patch8: 0011-Revert-tcg-i386-Implement-tcg_out_dupm_vec.patch
 # For obs getting stuck in getrandom
 Patch9: 0013-crypto-check-if-getrandom-is-available-properly.patch
 # fix libgcyrpt basic test with 4.2.0 (and probably other failures)
-Patch10: 0014-Revert-tcg-Add-INDEX_op_dupm_vec.patch
+#Patch10: 0014-Revert-tcg-Add-INDEX_op_dupm_vec.patch
 # fix openat syscall (breaks e.g. bc build)
 Patch11: 0015-make-sure-mode-is-passed-to-openat-if-O_TMPFILE-is-s.patch
 # make sure utimensat from glibc is being used (see sb2 fixes above)
@@ -42,6 +42,8 @@ Patch14: 0018-linux-user-Support-f_flags-in-statfs64-when-availabl.patch
 
 # Test patch to revert init_guest_commpage error
 Patch18: 0022-Revert-linux-user-completely-re-write-init_guest_spa.patch
+
+Patch19: 0001-Force-AVX2-off.patch
 
 BuildRequires:  pkgconfig(ext2fs)
 BuildRequires:  pkgconfig(glib-2.0)
