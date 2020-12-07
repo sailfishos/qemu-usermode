@@ -1,0 +1,105 @@
+From c45f55f50a8b2aa6a9f34e9362de1e2419751a45 Mon Sep 17 00:00:00 2001
+From: Frajo Haider <f_haider@gmx.at>
+Date: Mon, 7 Dec 2020 20:24:57 +0000
+Subject: [PATCH 1/1] linux-user: don't fail if commpage is not usable.
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+This is in order to handle the case where we run 32-bit SailfishOS sdk
+tooling on a 64-bit kernel where ARM_COMMPAGE is not supported.
+
+Co-authored-by: Juho Hämäläinen <juho.hamalainen@jolla.com>
+---
+ linux-user/elfload.c | 38 +++++++++++++++++++++++++++++++++-----
+ 1 file changed, 33 insertions(+), 5 deletions(-)
+
+diff --git a/linux-user/elfload.c b/linux-user/elfload.c
+index fe9dfe795d..438f888c01 100644
+--- a/linux-user/elfload.c
++++ b/linux-user/elfload.c
+@@ -25,6 +25,8 @@
+ 
+ #define ELF_OSABI   ELFOSABI_SYSV
+ 
++static bool have_commpage = true;
++
+ /* from personality.h */
+ 
+ /*
+@@ -385,11 +387,34 @@ enum {
+ 
+ #define ARM_COMMPAGE (intptr_t)0xffff0f00u
+ 
++static void check_commpage(void)
++{
++    if (have_commpage) {
++        void *want = g2h(ARM_COMMPAGE & -qemu_host_page_size);
++        void *addr = mmap(want, qemu_host_page_size, PROT_READ | PROT_WRITE,
++                          MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED, -1, 0);
++
++        if (addr == MAP_FAILED) {
++            /* Assume no commpage. */
++            have_commpage = false;
++            return;
++        }
++
++        munmap(addr, qemu_host_page_size);
++    }
++}
++
+ static bool init_guest_commpage(void)
+ {
+-    void *want = g2h(ARM_COMMPAGE & -qemu_host_page_size);
+-    void *addr = mmap(want, qemu_host_page_size, PROT_READ | PROT_WRITE,
+-                      MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED, -1, 0);
++    void *want = NULL;
++    void *addr = NULL;
++
++    if (!have_commpage)
++        return true;
++
++    want = g2h(ARM_COMMPAGE & -qemu_host_page_size);
++    addr = mmap(want, qemu_host_page_size, PROT_READ | PROT_WRITE,
++                MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED, -1, 0);
+ 
+     if (addr == MAP_FAILED) {
+         perror("Allocating guest commpage");
+@@ -2041,6 +2066,7 @@ static abi_ulong create_elf_tables(abi_ulong p, int argc, int envc,
+ #ifndef ARM_COMMPAGE
+ #define ARM_COMMPAGE 0
+ #define init_guest_commpage() true
++#define check_commpage() do{}while(0)
+ #endif
+ 
+ static void pgb_fail_in_use(const char *image_name)
+@@ -2238,7 +2264,7 @@ static void pgb_static(const char *image_name, abi_ulong orig_loaddr,
+     }
+ 
+     loaddr &= -align;
+-    if (ARM_COMMPAGE) {
++    if (ARM_COMMPAGE && have_commpage) {
+         /*
+          * Extend the allocation to include the commpage.
+          * For a 64-bit host, this is just 4GiB; for a 32-bit host we
+@@ -2277,7 +2303,7 @@ static void pgb_dynamic(const char *image_name, long align)
+      * All we need is a commpage that satisfies align.
+      * If we do not need a commpage, leave guest_base == 0.
+      */
+-    if (ARM_COMMPAGE) {
++    if (ARM_COMMPAGE && have_commpage) {
+         uintptr_t addr, commpage;
+ 
+         /* 64-bit hosts should have used reserved_va. */
+@@ -2333,6 +2359,8 @@ void probe_guest_base(const char *image_name, abi_ulong guest_loaddr,
+     /* In order to use host shmat, we must be able to honor SHMLBA.  */
+     uintptr_t align = MAX(SHMLBA, qemu_host_page_size);
+ 
++    check_commpage();
++
+     if (have_guest_base) {
+         pgb_have_guest_base(image_name, guest_loaddr, guest_hiaddr, align);
+     } else if (reserved_va) {
+-- 
+2.26.2
+
