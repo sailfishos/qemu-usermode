@@ -68,7 +68,6 @@ CONFIGURE_FLAGS=" \
     --enable-linux-user \
     --disable-werror \
     --disable-strip \
-    --enable-debug \
     --disable-zstd \
     --disable-linux-io-uring \
     --target-list=$((for target in %{target_list}; do echo -n ${target}-linux-user,; done) | sed -e 's/,$//')"
