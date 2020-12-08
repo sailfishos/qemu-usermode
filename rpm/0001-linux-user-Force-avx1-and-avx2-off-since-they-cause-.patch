@@ -1,0 +1,28 @@
+From 65c76196ad2679827be8f22eaec229c8ec6f847f Mon Sep 17 00:00:00 2001
+From: Frajo Haider <f_haider@gmx.at>
+Date: Tue, 8 Dec 2020 10:18:18 +0000
+Subject: [PATCH 1/1] linux-user: Force avx1 and avx2 off since they cause
+ issues in sb2 environment.
+
+---
+ tcg/i386/tcg-target.inc.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/tcg/i386/tcg-target.inc.c b/tcg/i386/tcg-target.inc.c
+index ae0228238b..1e47a8f1d0 100644
+--- a/tcg/i386/tcg-target.inc.c
++++ b/tcg/i386/tcg-target.inc.c
+@@ -3894,8 +3894,8 @@ static void tcg_target_init(TCGContext *s)
+              */
+             asm(".byte 0x0f, 0x01, 0xd0" : "=a" (xcrl), "=d" (xcrh) : "c" (0));
+             if ((xcrl & 6) == 6) {
+-                have_avx1 = (c & bit_AVX) != 0;
+-                have_avx2 = (b7 & bit_AVX2) != 0;
++                have_avx1 = false;//(c & bit_AVX) != 0;
++                have_avx2 = false;//have_avx2 = (b7 & bit_AVX2) != 0;
+             }
+         }
+     }
+-- 
+2.26.2
+
