@@ -1,7 +1,7 @@
-From 456bf439bdaa2cefede8b09f224a660b8aee8353 Mon Sep 17 00:00:00 2001
+From e5652fa105dd80dac30ae6f70f7eabe67028280c Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Tue, 8 Dec 2020 00:19:06 +0200
-Subject: [PATCH 1/1] linux-user: disable commpage
+Subject: [PATCH 14/15] linux-user: disable commpage
 
 ---
  linux-user/elfload.c | 8 +++++++-

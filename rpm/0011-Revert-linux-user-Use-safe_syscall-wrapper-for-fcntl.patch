@@ -1,7 +1,7 @@
-From 0ffeb21b025cdc3b9f131f0e3deece6e8c0dff51 Mon Sep 17 00:00:00 2001
+From 9b30d2368b2fed70268d8e6c95eb63be31546c19 Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Wed, 29 Jan 2020 12:42:08 +0000
-Subject: [PATCH 17/18] Revert "linux-user: Use safe_syscall wrapper for fcntl"
+Subject: [PATCH 11/15] Revert "linux-user: Use safe_syscall wrapper for fcntl"
 
 This reverts commit 435da5e7092aa54e12044b9401b42c4a9333c74d.
 
@@ -13,10 +13,10 @@ Conflicts:
  1 file changed, 12 insertions(+), 24 deletions(-)
 
 diff --git a/linux-user/syscall.c b/linux-user/syscall.c
-index 26c80f6..859cce2 100644
+index 5ec9a19ca2..04ea1724f5 100644
 --- a/linux-user/syscall.c
 +++ b/linux-user/syscall.c
-@@ -808,16 +808,6 @@ safe_syscall5(int, mq_timedreceive, int, mqdes, char *, msg_ptr,
+@@ -851,16 +851,6 @@ safe_syscall5(int, mq_timedreceive, int, mqdes, char *, msg_ptr,
   * the libc function.
   */
  #define safe_ioctl(...) safe_syscall(__NR_ioctl, __VA_ARGS__)
@@ -33,7 +33,7 @@ index 26c80f6..859cce2 100644
  
  static inline int host_to_target_sock_type(int host_type)
  {
-@@ -6223,7 +6213,7 @@ static abi_long do_fcntl(int fd, int cmd, abi_ulong arg)
+@@ -6530,7 +6520,7 @@ static abi_long do_fcntl(int fd, int cmd, abi_ulong arg)
          if (ret) {
              return ret;
          }
@@ -42,7 +42,7 @@ index 26c80f6..859cce2 100644
          if (ret == 0) {
              ret = copy_to_user_flock(arg, &fl64);
          }
-@@ -6235,7 +6225,7 @@ static abi_long do_fcntl(int fd, int cmd, abi_ulong arg)
+@@ -6542,7 +6532,7 @@ static abi_long do_fcntl(int fd, int cmd, abi_ulong arg)
          if (ret) {
              return ret;
          }
@@ -51,7 +51,7 @@ index 26c80f6..859cce2 100644
          break;
  
      case TARGET_F_GETLK64:
-@@ -6243,7 +6233,7 @@ static abi_long do_fcntl(int fd, int cmd, abi_ulong arg)
+@@ -6551,7 +6541,7 @@ static abi_long do_fcntl(int fd, int cmd, abi_ulong arg)
          if (ret) {
              return ret;
          }
@@ -60,7 +60,7 @@ index 26c80f6..859cce2 100644
          if (ret == 0) {
              ret = copy_to_user_flock64(arg, &fl64);
          }
-@@ -6254,25 +6244,23 @@ static abi_long do_fcntl(int fd, int cmd, abi_ulong arg)
+@@ -6564,25 +6554,23 @@ static abi_long do_fcntl(int fd, int cmd, abi_ulong arg)
          if (ret) {
              return ret;
          }
@@ -90,7 +90,7 @@ index 26c80f6..859cce2 100644
          if (ret >= 0) {
              if (!lock_user_struct(VERIFY_WRITE, target_fox, arg, 0))
                  return -TARGET_EFAULT;
-@@ -6290,7 +6278,7 @@ static abi_long do_fcntl(int fd, int cmd, abi_ulong arg)
+@@ -6600,7 +6588,7 @@ static abi_long do_fcntl(int fd, int cmd, abi_ulong arg)
          fox.type = tswap32(target_fox->type);
          fox.pid = tswap32(target_fox->pid);
          unlock_user_struct(target_fox, arg, 0);
@@ -99,7 +99,7 @@ index 26c80f6..859cce2 100644
          break;
  #endif
  
-@@ -6302,11 +6290,11 @@ static abi_long do_fcntl(int fd, int cmd, abi_ulong arg)
+@@ -6612,11 +6600,11 @@ static abi_long do_fcntl(int fd, int cmd, abi_ulong arg)
      case TARGET_F_GETLEASE:
      case TARGET_F_SETPIPE_SZ:
      case TARGET_F_GETPIPE_SZ:
@@ -113,7 +113,7 @@ index 26c80f6..859cce2 100644
          break;
      }
      return ret;
-@@ -11070,7 +11058,7 @@ static abi_long do_syscall1(void *cpu_env, int num, abi_long arg1,
+@@ -11522,7 +11510,7 @@ static abi_long do_syscall1(void *cpu_env, int num, abi_long arg1,
              if (ret) {
                  break;
              }
@@ -122,7 +122,7 @@ index 26c80f6..859cce2 100644
              if (ret == 0) {
                  ret = copyto(arg3, &fl);
              }
-@@ -11082,7 +11070,7 @@ static abi_long do_syscall1(void *cpu_env, int num, abi_long arg1,
+@@ -11534,7 +11522,7 @@ static abi_long do_syscall1(void *cpu_env, int num, abi_long arg1,
              if (ret) {
                  break;
              }
@@ -132,5 +132,5 @@ index 26c80f6..859cce2 100644
          default:
              ret = do_fcntl(arg1, arg2, arg3);
 -- 
-1.8.3-rc3
+2.26.2
 

@@ -16,24 +16,26 @@ Patch0: 0001-Revert-linux-user-Use-safe_syscall-for-open-and-open.patch
 Patch1: 0002-Revert-linux-user-Use-safe_syscall-for-execve-syscal.patch
 Patch2: 0003-Revert-linux-user-Use-safe_syscall-wrapper-for-send-.patch
 Patch3: 0004-Revert-linux-user-Use-safe_syscall-wrapper-for-accep.patch
-Patch4: 0006-Revert-linux-user-Use-safe_syscall-wrapper-for-conne.patch
-Patch5: 0007-Revert-linux-user-Use-direct-syscall-for-utimensat.patch
+Patch4: 0005-Revert-linux-user-Use-safe_syscall-wrapper-for-conne.patch
+Patch5: 0006-Revert-linux-user-Use-direct-syscall-for-utimensat.patch
 # fix for "kill -INT", etc. on qemu emulated binaries, e.g. ninja_test
-Patch6: 0009-linux-user-Also-ignore-attempts-to-block-SIGTERM-SIG.patch
+Patch6: 0007-linux-user-Also-ignore-attempts-to-block-SIGTERM-SIG.patch
 # For obs getting stuck in getrandom
-Patch9: 0013-crypto-check-if-getrandom-is-available-properly.patch
+Patch7: 0008-crypto-check-if-getrandom-is-available-properly.patch
 # fix openat syscall (breaks e.g. bc build)
-Patch11: 0015-make-sure-mode-is-passed-to-openat-if-O_TMPFILE-is-s.patch
+Patch8: 0009-make-sure-mode-is-passed-to-openat-if-O_TMPFILE-is-s.patch
 # make sure utimensat from glibc is being used (see sb2 fixes above)
-Patch12: 0016-Revert-util-drop-old-utimensat-compat-code.patch
+Patch9: 0010-Revert-util-drop-old-utimensat-compat-code.patch
 # one more revert for sb2
-Patch13: 0017-Revert-linux-user-Use-safe_syscall-wrapper-for-fcntl.patch
+Patch10: 0011-Revert-linux-user-Use-safe_syscall-wrapper-for-fcntl.patch
 # fix f_flags in statfs64
-Patch14: 0018-linux-user-Support-f_flags-in-statfs64-when-availabl.patch
-
-Patch19: 0099-linux-user-Force-avx1-and-avx2-off-since-they-cause-.patch
-Patch20: 0100-linux-user-disable-commpage.patch
-Patch21: 0101-linux-user-fix-guest-address-space-assert.patch
+Patch11: 0012-linux-user-Support-f_flags-in-statfs64-when-availabl.patch
+# fix build failures
+Patch12: 0013-linux-user-Force-avx1-and-avx2-off-since-they-cause-.patch
+# fix qemu-user start issues due to running on 64 bit kernel
+Patch13: 0014-linux-user-disable-commpage.patch
+# fix assert which breaks ustr tests
+Patch14: 0015-linux-user-fix-guest-address-space-assert.patch
 
 BuildRequires:  pkgconfig(ext2fs)
 BuildRequires:  pkgconfig(glib-2.0)
