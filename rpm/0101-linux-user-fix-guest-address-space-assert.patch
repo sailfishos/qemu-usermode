@@ -1,0 +1,26 @@
+From cbdc0543f22d8e9ef60b073ce61199452167c04e Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Juho=20H=C3=A4m=C3=A4l=C3=A4inen?=
+ <juho.hamalainen@jolla.com>
+Date: Tue, 8 Dec 2020 15:47:10 +0000
+Subject: [PATCH 1/1] linux-user: fix guest address space assert
+
+---
+ accel/tcg/translate-all.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/accel/tcg/translate-all.c b/accel/tcg/translate-all.c
+index 2d83013633..4cea23784a 100644
+--- a/accel/tcg/translate-all.c
++++ b/accel/tcg/translate-all.c
+@@ -2551,7 +2551,7 @@ void page_set_flags(target_ulong start, target_ulong end, int flags)
+     /* This function should never be called with addresses outside the
+        guest address space.  If this assert fires, it probably indicates
+        a missing call to h2g_valid.  */
+-    assert(end - 1 <= GUEST_ADDR_MAX);
++    assert(guest_addr_valid(end - 1));
+     assert(start < end);
+     assert_memory_lock();
+ 
+-- 
+2.26.2
+
