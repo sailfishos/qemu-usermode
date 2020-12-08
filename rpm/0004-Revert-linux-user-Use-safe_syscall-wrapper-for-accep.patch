@@ -1,4 +1,4 @@
-From d6f39d396f585b53ef3b1e9214b6d0f55eee5dfa Mon Sep 17 00:00:00 2001
+From d7a6f3ca96a4af2f47031ea04cf05e92e36cd8bb Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Wed, 22 Jan 2020 10:59:47 +0200
 Subject: [PATCH 04/15] Revert "linux-user: Use safe_syscall wrapper for accept

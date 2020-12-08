@@ -1,4 +1,4 @@
-From b9d5ad6e4361ea2b6659deb9350e6f642c95e1fe Mon Sep 17 00:00:00 2001
+From b633f9758ed8101ea56a7d3c2303ac1f6b994258 Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Wed, 29 Jan 2020 11:21:54 +0000
 Subject: [PATCH 10/15] Revert "util: drop old utimensat() compat code"

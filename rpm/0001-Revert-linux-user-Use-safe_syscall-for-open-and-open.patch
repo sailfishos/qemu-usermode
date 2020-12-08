@@ -1,4 +1,4 @@
-From 0ac39b60e1b500f54cd46c4cc38e7e70b215c8d8 Mon Sep 17 00:00:00 2001
+From a5702421f6f9f205fe6ba4e6ce90cef778356d9a Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Wed, 22 Jan 2020 10:47:20 +0200
 Subject: [PATCH 01/15] Revert "linux-user: Use safe_syscall for open and

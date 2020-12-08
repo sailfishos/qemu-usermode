@@ -1,4 +1,4 @@
-From 71722b7b0709ae5b2d9ce89b42d55b4907173d3c Mon Sep 17 00:00:00 2001
+From e85a856e19919c936c4cd851bcc68c3b974f28d1 Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Mon, 27 Jan 2020 20:34:21 +0200
 Subject: [PATCH 08/15] crypto: check if getrandom is available properly

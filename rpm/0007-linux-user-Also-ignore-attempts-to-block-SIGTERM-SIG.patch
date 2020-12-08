@@ -1,4 +1,4 @@
-From a66c62b4db0643b10d2471b4b5ab046c7afd3cff Mon Sep 17 00:00:00 2001
+From 0c236d048cd3ddfbd02ea96d780a1abe01dc1c0a Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Thu, 23 Jan 2020 00:13:32 +0000
 Subject: [PATCH 07/15] linux-user: Also ignore attempts to block SIGTERM,

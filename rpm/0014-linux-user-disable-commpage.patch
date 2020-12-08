@@ -1,27 +1,17 @@
-From e5652fa105dd80dac30ae6f70f7eabe67028280c Mon Sep 17 00:00:00 2001
+From 0ae25695228fefca462304c91735fc1736156649 Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Tue, 8 Dec 2020 00:19:06 +0200
 Subject: [PATCH 14/15] linux-user: disable commpage
 
 ---
- linux-user/elfload.c | 8 +++++++-
- 1 file changed, 7 insertions(+), 1 deletion(-)
+ linux-user/elfload.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
 
 diff --git a/linux-user/elfload.c b/linux-user/elfload.c
-index fe9dfe795d..d18dca677a 100644
+index fe9dfe795d..7119cf531a 100644
 --- a/linux-user/elfload.c
 +++ b/linux-user/elfload.c
-@@ -4,6 +4,9 @@
- 
- #include <sys/resource.h>
- #include <sys/shm.h>
-+#include <unistd.h>
-+#include <sys/syscall.h>
-+#include <sys/utsname.h>
- 
- #include "qemu.h"
- #include "disas/disas.h"
-@@ -383,8 +386,10 @@ enum {
+@@ -383,8 +383,10 @@ enum {
  
  /* The commpage only exists for 32 bit kernels */
  
@@ -33,7 +23,7 @@ index fe9dfe795d..d18dca677a 100644
  static bool init_guest_commpage(void)
  {
      void *want = g2h(ARM_COMMPAGE & -qemu_host_page_size);
-@@ -408,6 +413,7 @@ static bool init_guest_commpage(void)
+@@ -408,6 +410,7 @@ static bool init_guest_commpage(void)
      }
      return true;
  }

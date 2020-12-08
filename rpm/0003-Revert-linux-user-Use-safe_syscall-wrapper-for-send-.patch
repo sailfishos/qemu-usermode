@@ -1,4 +1,4 @@
-From c45d32c85a6d98e6fb20025af3ee96abfdccf925 Mon Sep 17 00:00:00 2001
+From 34c2acb97023dbe6fdf2e81cbb1e55b2e25bc169 Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Wed, 22 Jan 2020 10:57:53 +0200
 Subject: [PATCH 03/15] Revert "linux-user: Use safe_syscall wrapper for send*

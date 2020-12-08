@@ -1,4 +1,4 @@
-From 9b30d2368b2fed70268d8e6c95eb63be31546c19 Mon Sep 17 00:00:00 2001
+From 3025c3ad424d229f4d52209d7eec058d9fec8816 Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Wed, 29 Jan 2020 12:42:08 +0000
 Subject: [PATCH 11/15] Revert "linux-user: Use safe_syscall wrapper for fcntl"

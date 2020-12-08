@@ -1,4 +1,4 @@
-From b2e957746ede5e8e5f8b9d931a309079df6521b8 Mon Sep 17 00:00:00 2001
+From 33dd663c75aeceade62a2e5803a9648815acd019 Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Thu, 30 Jan 2020 12:17:16 +0000
 Subject: [PATCH 12/15] linux-user: Support f_flags in statfs64 when available.
