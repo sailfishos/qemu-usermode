@@ -1,7 +1,7 @@
-From c5ee3e5707dcf49d62b4b7d4714d9861153a900d Mon Sep 17 00:00:00 2001
+From a5702421f6f9f205fe6ba4e6ce90cef778356d9a Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Wed, 22 Jan 2020 10:47:20 +0200
-Subject: [PATCH 01/18] Revert "linux-user: Use safe_syscall for open and
+Subject: [PATCH 01/15] Revert "linux-user: Use safe_syscall for open and
  openat system calls"
 
 This reverts commit c10a07387b77b94d8f7233f3b5bb559211d4e49a.
@@ -10,12 +10,12 @@ This reverts commit c10a07387b77b94d8f7233f3b5bb559211d4e49a.
  1 file changed, 14 insertions(+), 4 deletions(-)
 
 diff --git a/linux-user/syscall.c b/linux-user/syscall.c
-index 171c0ca..55a96ad 100644
+index 945fc25279..b8e9b839a2 100644
 --- a/linux-user/syscall.c
 +++ b/linux-user/syscall.c
-@@ -375,6 +375,18 @@ static int sys_getcwd1(char *buf, size_t size)
-   return strlen(buf)+1;
- }
+@@ -390,6 +390,18 @@ static bitmask_transtbl fcntl_flags_tbl[] = {
+ 
+ _syscall2(int, sys_getcwd1, char *, buf, size_t, size)
  
 +static int sys_openat(int dirfd, const char *pathname, int flags, mode_t mode)
 +{
@@ -32,7 +32,7 @@ index 171c0ca..55a96ad 100644
  #ifdef TARGET_NR_utimensat
  #if defined(__NR_utimensat)
  #define __NR_sys_utimensat __NR_utimensat
-@@ -731,8 +743,6 @@ static type safe_##name(type1 arg1, type2 arg2, type3 arg3, type4 arg4, \
+@@ -746,8 +758,6 @@ static type safe_##name(type1 arg1, type2 arg2, type3 arg3, type4 arg4, \
  
  safe_syscall3(ssize_t, read, int, fd, void *, buff, size_t, count)
  safe_syscall3(ssize_t, write, int, fd, const void *, buff, size_t, count)
@@ -41,7 +41,7 @@ index 171c0ca..55a96ad 100644
  #if defined(TARGET_NR_wait4) || defined(TARGET_NR_waitpid)
  safe_syscall4(pid_t, wait4, pid_t, pid, int *, status, int, options, \
                struct rusage *, rusage)
-@@ -7198,7 +7208,7 @@ static int do_openat(void *cpu_env, int dirfd, const char *pathname, int flags,
+@@ -7614,7 +7624,7 @@ static int do_openat(void *cpu_env, int dirfd, const char *pathname, int flags,
  
      if (is_proc_myself(pathname, "exe")) {
          int execfd = qemu_getauxval(AT_EXECFD);
@@ -50,7 +50,7 @@ index 171c0ca..55a96ad 100644
      }
  
      for (fake_open = fakes; fake_open->filename; fake_open++) {
-@@ -7234,7 +7244,7 @@ static int do_openat(void *cpu_env, int dirfd, const char *pathname, int flags,
+@@ -7650,7 +7660,7 @@ static int do_openat(void *cpu_env, int dirfd, const char *pathname, int flags,
          return fd;
      }
  
@@ -60,5 +60,5 @@ index 171c0ca..55a96ad 100644
  
  #define TIMER_MAGIC 0x0caf0000
 -- 
-1.8.3-rc3
+2.26.2
 

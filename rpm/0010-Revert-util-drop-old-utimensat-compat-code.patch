@@ -1,23 +1,23 @@
-From 69ef874f2a2b6ce45c184905e22e0beb1475e8b0 Mon Sep 17 00:00:00 2001
+From b633f9758ed8101ea56a7d3c2303ac1f6b994258 Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Wed, 29 Jan 2020 11:21:54 +0000
-Subject: [PATCH 16/18] Revert "util: drop old utimensat() compat code"
+Subject: [PATCH 10/15] Revert "util: drop old utimensat() compat code"
 
 This reverts commit fcdcf1eed2fd26bfe836080755ba4322d3c1f2cc.
 
 Conflicts:
 	slirp
 ---
- configure                 | 22 ++++++++++++++++++++++
- include/sysemu/os-posix.h | 11 +++++++++++
- util/oslib-posix.c        | 47 +++++++++++++++++++++++++++++++++++++++++++++++
+ configure                 | 22 ++++++++++++++++++
+ include/sysemu/os-posix.h | 11 +++++++++
+ util/oslib-posix.c        | 47 +++++++++++++++++++++++++++++++++++++++
  3 files changed, 80 insertions(+)
 
 diff --git a/configure b/configure
-index 6099be1..cdc4f46 100755
+index 2acc4d1465..5d47dbc1e8 100755
 --- a/configure
 +++ b/configure
-@@ -4325,6 +4325,25 @@ if compile_prog "" "" ; then
+@@ -4599,6 +4599,25 @@ if compile_prog "" "" ; then
    inotify1=yes
  fi
  
@@ -43,7 +43,7 @@ index 6099be1..cdc4f46 100755
  # check if pipe2 is there
  pipe2=no
  cat > $TMPC << EOF
-@@ -6840,6 +6859,9 @@ if test "$curses" = "yes" ; then
+@@ -7261,6 +7280,9 @@ if test "$curses" = "yes" ; then
    echo "CURSES_CFLAGS=$curses_inc" >> $config_host_mak
    echo "CURSES_LIBS=$curses_lib" >> $config_host_mak
  fi
@@ -54,7 +54,7 @@ index 6099be1..cdc4f46 100755
    echo "CONFIG_PIPE2=y" >> $config_host_mak
  fi
 diff --git a/include/sysemu/os-posix.h b/include/sysemu/os-posix.h
-index 629c8c6..900bdcb 100644
+index 629c8c648b..900bdcb45a 100644
 --- a/include/sysemu/os-posix.h
 +++ b/include/sysemu/os-posix.h
 @@ -51,6 +51,17 @@ int os_mlock(void);
@@ -76,10 +76,10 @@ index 629c8c6..900bdcb 100644
  
  /**
 diff --git a/util/oslib-posix.c b/util/oslib-posix.c
-index 5a291cc..eb57405 100644
+index ad8001a4ad..6df285a07b 100644
 --- a/util/oslib-posix.c
 +++ b/util/oslib-posix.c
-@@ -304,6 +304,53 @@ int qemu_pipe(int pipefd[2])
+@@ -336,6 +336,53 @@ int qemu_pipe(int pipefd[2])
      return ret;
  }
  
@@ -134,5 +134,5 @@ index 5a291cc..eb57405 100644
  qemu_get_local_state_pathname(const char *relative_pathname)
  {
 -- 
-1.8.3-rc3
+2.26.2
 
