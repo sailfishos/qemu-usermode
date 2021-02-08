@@ -18,8 +18,6 @@ Patch2: 0003-Revert-linux-user-Use-safe_syscall-wrapper-for-send-.patch
 Patch3: 0004-Revert-linux-user-Use-safe_syscall-wrapper-for-accep.patch
 Patch4: 0005-Revert-linux-user-Use-safe_syscall-wrapper-for-conne.patch
 Patch5: 0006-Revert-linux-user-Use-direct-syscall-for-utimensat.patch
-# fix for "kill -INT", etc. on qemu emulated binaries, e.g. ninja_test
-Patch6: 0007-linux-user-Also-ignore-attempts-to-block-SIGTERM-SIG.patch
 # For obs getting stuck in getrandom
 Patch7: 0008-crypto-check-if-getrandom-is-available-properly.patch
 # fix openat syscall (breaks e.g. bc build)
