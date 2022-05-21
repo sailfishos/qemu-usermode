@@ -1,9 +1,9 @@
 # Target architectures to build emulators of
-%define target_list aarch64 arm mipsel
+%define target_list aarch64 arm
 
 Name:       qemu-usermode
 Summary:    Universal CPU emulator
-Version:    5.1.0
+Version:    7.2.5
 Release:    1
 License:    GPLv2 and BSD and MIT and CC-BY
 ExclusiveArch:  %{ix86}
@@ -11,29 +11,17 @@ URL:        https://www.qemu.org/
 Source0:    %{name}-%{version}.tar.xz
 Source1:    qemu-binfmt-conf.sh
 
-# fix for sb2 (sb2 needs to hook open, openat):
-Patch0: 0001-Revert-linux-user-Use-safe_syscall-for-open-and-open.patch
-Patch1: 0002-Revert-linux-user-Use-safe_syscall-for-execve-syscal.patch
-Patch2: 0003-Revert-linux-user-Use-safe_syscall-wrapper-for-send-.patch
-Patch3: 0004-Revert-linux-user-Use-safe_syscall-wrapper-for-accep.patch
-Patch4: 0005-Revert-linux-user-Use-safe_syscall-wrapper-for-conne.patch
-Patch5: 0006-Revert-linux-user-Use-direct-syscall-for-utimensat.patch
-# For obs getting stuck in getrandom
-Patch7: 0008-crypto-check-if-getrandom-is-available-properly.patch
-# fix openat syscall (breaks e.g. bc build)
-Patch8: 0009-make-sure-mode-is-passed-to-openat-if-O_TMPFILE-is-s.patch
-# make sure utimensat from glibc is being used (see sb2 fixes above)
-Patch9: 0010-Revert-util-drop-old-utimensat-compat-code.patch
-# one more revert for sb2
-Patch10: 0011-Revert-linux-user-Use-safe_syscall-wrapper-for-fcntl.patch
-# fix f_flags in statfs64
-Patch11: 0012-linux-user-Support-f_flags-in-statfs64-when-availabl.patch
-# fix build failures
-Patch12: 0013-linux-user-Force-avx1-and-avx2-off-since-they-cause-.patch
-# fix qemu-user start issues due to running on 64 bit kernel
-Patch13: 0014-linux-user-disable-commpage.patch
-# fix assert which breaks ustr tests
-Patch14: 0015-linux-user-fix-guest-address-space-assert.patch
+# i=1; for j in 0*patch; do printf "Patch%04d: %s\n" $i $j; i=$((i+1));done
+Patch0001: 0001-Revert-linux-user-Use-safe_syscall-for-open-and-open.patch
+Patch0002: 0002-Revert-linux-user-Use-safe_syscall-for-execve-syscal.patch
+Patch0003: 0003-Revert-linux-user-Use-safe_syscall-wrapper-for-send-.patch
+Patch0004: 0004-Revert-linux-user-Use-safe_syscall-wrapper-for-accep.patch
+Patch0005: 0005-Revert-linux-user-Use-safe_syscall-wrapper-for-conne.patch
+Patch0006: 0006-Revert-linux-user-Use-direct-syscall-for-utimensat.patch
+Patch0007: 0007-Revert-util-drop-old-utimensat-compat-code.patch
+Patch0008: 0008-Revert-linux-user-Use-safe_syscall-wrapper-for-fcntl.patch
+Patch0009: 0009-make-sure-mode-is-passed-to-openat-if-O_TMPFILE-is-s.patch
+Patch0010: 0010-linux-user-disable-commpage.patch
 
 BuildRequires:  pkgconfig(ext2fs)
 BuildRequires:  pkgconfig(glib-2.0)
@@ -48,6 +36,7 @@ BuildRequires:  glib2-static
 BuildRequires:  pcre-static
 # Hard requirement for version >= 1.3
 BuildRequires:  pixman-devel
+BuildRequires:  ninja
 Requires: %{name}-common = %{version}
 
 %description
@@ -58,8 +47,8 @@ QEMU is an extremely well-performing CPU emulator that allows you to choose betw
 %autosetup -p1 -n qemu-usermode-%{version}/upstream
 
 %build
-CFLAGS=`echo $CFLAGS | sed 's|-fno-omit-frame-pointer||g'` ; export CFLAGS ;
-CFLAGS=`echo $CFLAGS | sed 's|-O2|-O|g'` ; export CFLAGS ;
+#CFLAGS=`echo $CFLAGS | sed 's|-fno-omit-frame-pointer||g'` ; export CFLAGS ;
+#CFLAGS=`echo $CFLAGS | sed 's|-O2|-O|g'` ; export CFLAGS ;
 
 CONFIGURE_FLAGS=" \
     --prefix=/usr \
@@ -81,7 +70,7 @@ for mode in static dynamic; do
     else
         ../configure $CONFIGURE_FLAGS --enable-tools
     fi
-    make V=1 %{?_smp_mflags}
+    %ninja_build
     cd ..
 done
 
@@ -93,7 +82,7 @@ install -m 755 %{SOURCE1} $RPM_BUILD_ROOT/%{_sbindir}
 
 for mode in static dynamic; do
     cd build-$mode
-    %make_install
+    %ninja_install
     for target in %{target_list}; do
         mv %{buildroot}%{_bindir}/qemu-${target} %{buildroot}%{_bindir}/qemu-${target}-${mode}
     done
@@ -143,11 +132,10 @@ This package provides common qemu utilities.
 %{_bindir}/qemu-io
 %{_bindir}/qemu-nbd
 %{_bindir}/qemu-ga
-%{_bindir}/ivshmem-client
-%{_bindir}/ivshmem-server
 %{_bindir}/qemu-edid
-%{_bindir}/elf2dmp
 %{_bindir}/qemu-storage-daemon
+%{_bindir}/qemu-pr-helper
+%{_bindir}/elf2dmp
 
 %package static
 Summary:  Universal CPU emulator (static userspace emulators)

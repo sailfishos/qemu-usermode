@@ -1,8 +1,8 @@
-From d7a6f3ca96a4af2f47031ea04cf05e92e36cd8bb Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Wed, 22 Jan 2020 10:59:47 +0200
-Subject: [PATCH 04/15] Revert "linux-user: Use safe_syscall wrapper for accept
- and accept4 syscalls"
+Subject: [PATCH] Revert "linux-user: Use safe_syscall wrapper for accept and
+ accept4 syscalls"
 
 This reverts commit ff6dc130794bcd5b2033bc50262a7720285a74c7.
 ---
@@ -10,10 +10,10 @@ This reverts commit ff6dc130794bcd5b2033bc50262a7720285a74c7.
  1 file changed, 15 insertions(+), 4 deletions(-)
 
 diff --git a/linux-user/syscall.c b/linux-user/syscall.c
-index 4b87fafe44..50a91b9af7 100644
+index 2e1bd619bad6c06489b31bed5d79f8b40a0059c7..d0912c1f09f8fde31a83ecd4c1f12c128f1fed0c 100644
 --- a/linux-user/syscall.c
 +++ b/linux-user/syscall.c
-@@ -800,8 +800,6 @@ safe_syscall2(int, flock, int, fd, int, operation)
+@@ -742,8 +742,6 @@ safe_syscall2(int, flock, int, fd, int, operation)
  safe_syscall4(int, rt_sigtimedwait, const sigset_t *, these, siginfo_t *, uinfo,
                const struct timespec *, uts, size_t, sigsetsize)
  #endif
@@ -22,7 +22,7 @@ index 4b87fafe44..50a91b9af7 100644
  #if defined(TARGET_NR_nanosleep)
  safe_syscall2(int, nanosleep, const struct timespec *, req,
                struct timespec *, rem)
-@@ -3238,6 +3236,19 @@ static abi_long do_sendrecvmmsg(int fd, abi_ulong target_msgvec,
+@@ -3449,6 +3447,19 @@ static abi_long do_sendrecvmmsg(int fd, abi_ulong target_msgvec,
      return ret;
  }
  
@@ -42,7 +42,7 @@ index 4b87fafe44..50a91b9af7 100644
  /* do_accept4() Must return target values and target errnos. */
  static abi_long do_accept4(int fd, abi_ulong target_addr,
                             abi_ulong target_addrlen_addr, int flags)
-@@ -3250,7 +3261,7 @@ static abi_long do_accept4(int fd, abi_ulong target_addr,
+@@ -3461,7 +3472,7 @@ static abi_long do_accept4(int fd, abi_ulong target_addr,
      host_flags = target_to_host_bitmask(flags, fcntl_flags_tbl);
  
      if (target_addr == 0) {
@@ -50,8 +50,8 @@ index 4b87fafe44..50a91b9af7 100644
 +        return get_errno(accept4(fd, NULL, NULL, host_flags));
      }
  
-     /* linux returns EINVAL if addrlen pointer is invalid */
-@@ -3267,7 +3278,7 @@ static abi_long do_accept4(int fd, abi_ulong target_addr,
+     /* linux returns EFAULT if addrlen pointer is invalid */
+@@ -3479,7 +3490,7 @@ static abi_long do_accept4(int fd, abi_ulong target_addr,
      addr = alloca(addrlen);
  
      ret_addrlen = addrlen;
@@ -60,6 +60,3 @@ index 4b87fafe44..50a91b9af7 100644
      if (!is_error(ret)) {
          host_to_target_sockaddr(target_addr, addr, MIN(addrlen, ret_addrlen));
          if (put_user_u32(ret_addrlen, target_addrlen_addr)) {
--- 
-2.26.2
-

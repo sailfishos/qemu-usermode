@@ -1,35 +1,41 @@
-From 7d64443c41d6249f098da26ff5fa9bc463ebbd45 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Wed, 29 Jan 2020 12:49:43 +0200
-Subject: [PATCH 06/15] Revert "linux-user: Use direct syscall for utimensat"
+Subject: [PATCH] Revert "linux-user: Use direct syscall for utimensat"
 
 This reverts commit 700fa58e4b9100d6bd77df06d2e5d1f457720c4d.
 ---
- linux-user/syscall.c | 11 ++++++++++-
- 1 file changed, 10 insertions(+), 1 deletion(-)
+ linux-user/syscall.c | 16 +++++++++-------
+ 1 file changed, 9 insertions(+), 7 deletions(-)
 
 diff --git a/linux-user/syscall.c b/linux-user/syscall.c
-index 88a64dc495..91594472ed 100644
+index 57717605f1bff6197b444b7b74b4512fa65ff052..cf05b060e6f27fcb072e6b078c76b04f94f38f5d 100644
 --- a/linux-user/syscall.c
 +++ b/linux-user/syscall.c
-@@ -403,7 +403,16 @@ static int sys_openat(int dirfd, const char *pathname, int flags, mode_t mode)
+@@ -510,17 +510,19 @@ static int sys_openat(int dirfd, const char *pathname, int flags, mode_t mode)
  }
  
- #ifdef TARGET_NR_utimensat
+ #if defined(TARGET_NR_utimensat) || defined(TARGET_NR_utimensat_time64)
 -#if defined(__NR_utimensat)
+-#define __NR_sys_utimensat __NR_utimensat
+-_syscall4(int,sys_utimensat,int,dirfd,const char *,pathname,
+-          const struct timespec *,tsp,int,flags)
+-#else
 +#ifdef CONFIG_UTIMENSAT
-+static int sys_utimensat(int dirfd, const char *pathname,
-+    const struct timespec times[2], int flags)
-+{
+ static int sys_utimensat(int dirfd, const char *pathname,
+                          const struct timespec times[2], int flags)
+ {
+-    errno = ENOSYS;
+-    return -1;
 +    if (pathname == NULL)
 +        return futimens(dirfd, times);
 +    else
 +        return utimensat(dirfd, pathname, times, flags);
-+}
+ }
 +#elif defined(__NR_utimensat)
- #define __NR_sys_utimensat __NR_utimensat
- _syscall4(int,sys_utimensat,int,dirfd,const char *,pathname,
-           const struct timespec *,tsp,int,flags)
--- 
-2.26.2
-
++#define __NR_sys_utimensat __NR_utimensat
++_syscall4(int,sys_utimensat,int,dirfd,const char *,pathname,
++          const struct timespec *,tsp,int,flags)
+ #endif
+ #endif /* TARGET_NR_utimensat */
+ 

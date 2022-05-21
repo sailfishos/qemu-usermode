@@ -1,26 +1,27 @@
-From b633f9758ed8101ea56a7d3c2303ac1f6b994258 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Wed, 29 Jan 2020 11:21:54 +0000
-Subject: [PATCH 10/15] Revert "util: drop old utimensat() compat code"
+Subject: [PATCH] Revert "util: drop old utimensat() compat code"
 
 This reverts commit fcdcf1eed2fd26bfe836080755ba4322d3c1f2cc.
 
 Conflicts:
 	slirp
 ---
- configure                 | 22 ++++++++++++++++++
- include/sysemu/os-posix.h | 11 +++++++++
- util/oslib-posix.c        | 47 +++++++++++++++++++++++++++++++++++++++
- 3 files changed, 80 insertions(+)
+ configure                 | 53 +++++++++++++++++++++++++++++++++++++++
+ include/sysemu/os-posix.h | 11 ++++++++
+ util/oslib-posix.c        | 47 ++++++++++++++++++++++++++++++++++
+ 3 files changed, 111 insertions(+)
 
 diff --git a/configure b/configure
-index 2acc4d1465..5d47dbc1e8 100755
+index 5f1828f1ec34893819ee97c13b6b67b1f00b8d57..cbc49101757fddcc47a37ff2daf218dc3bc367e3 100755
 --- a/configure
 +++ b/configure
-@@ -4599,6 +4599,25 @@ if compile_prog "" "" ; then
-   inotify1=yes
- fi
+@@ -1547,6 +1547,56 @@ case "$fdt" in
+ esac
  
+ ##########################################
++
 +# check if utimensat and futimens are supported
 +utimens=no
 +cat > $TMPC << EOF
@@ -40,27 +41,57 @@ index 2acc4d1465..5d47dbc1e8 100755
 +  utimens=yes
 +fi
 +
- # check if pipe2 is there
- pipe2=no
- cat > $TMPC << EOF
-@@ -7261,6 +7280,9 @@ if test "$curses" = "yes" ; then
-   echo "CURSES_CFLAGS=$curses_inc" >> $config_host_mak
-   echo "CURSES_LIBS=$curses_lib" >> $config_host_mak
++##########################################
++# libnuma probe
++
++if test "$numa" != "no" ; then
++  cat > $TMPC << EOF
++#include <numa.h>
++int main(void) { return numa_available(); }
++EOF
++
++  if compile_prog "" "-lnuma" ; then
++    numa=yes
++    numa_libs="-lnuma"
++  else
++    if test "$numa" = "yes" ; then
++      feature_not_found "numa" "install numactl devel"
++    fi
++    numa=no
++  fi
++fi
++
++malloc=system
++if test "$tcmalloc" = "yes" && test "$jemalloc" = "yes" ; then
++    echo "ERROR: tcmalloc && jemalloc can't be used at the same time"
++    exit 1
++elif test "$tcmalloc" = "yes" ; then
++    malloc=tcmalloc
++elif test "$jemalloc" = "yes" ; then
++    malloc=jemalloc
++fi
++
+ # check and set a backend for coroutine
+ 
+ # We prefer ucontext, but it's not always possible. The fallback
+@@ -2372,6 +2422,9 @@ echo "TARGET_DIRS=$target_list" >> $config_host_mak
+ if test "$modules" = "yes"; then
+   echo "CONFIG_MODULES=y" >> $config_host_mak
  fi
 +if test "$utimens" = "yes" ; then
 +  echo "CONFIG_UTIMENSAT=y" >> $config_host_mak
 +fi
- if test "$pipe2" = "yes" ; then
-   echo "CONFIG_PIPE2=y" >> $config_host_mak
- fi
+ 
+ # XXX: suppress that
+ if [ "$bsd" = "yes" ] ; then
 diff --git a/include/sysemu/os-posix.h b/include/sysemu/os-posix.h
-index 629c8c648b..900bdcb45a 100644
+index 58de7c994d851d6331792256848c0666f7fb0f0e..738cb2d43315ae2f594943dfd6a855160ef226ea 100644
 --- a/include/sysemu/os-posix.h
 +++ b/include/sysemu/os-posix.h
-@@ -51,6 +51,17 @@ int os_mlock(void);
- typedef struct timeval qemu_timeval;
- #define qemu_gettimeofday(tp) gettimeofday(tp, NULL)
+@@ -55,6 +55,17 @@ int os_mlock(void);
+ #define ioctlsocket(s, r, v) ioctl(s, r, v)
  
+ int os_set_daemonize(bool d);
 +#ifndef CONFIG_UTIMENSAT
 +#ifndef UTIME_NOW
 +# define UTIME_NOW     ((1l << 30) - 1l)
@@ -76,10 +107,10 @@ index 629c8c648b..900bdcb45a 100644
  
  /**
 diff --git a/util/oslib-posix.c b/util/oslib-posix.c
-index ad8001a4ad..6df285a07b 100644
+index 59a891b6a837bc4537d0d7d9e780e81a37b1ca34..76db373100ed0c7dcd05b014ac57bb11f34ae043 100644
 --- a/util/oslib-posix.c
 +++ b/util/oslib-posix.c
-@@ -336,6 +336,53 @@ int qemu_pipe(int pipefd[2])
+@@ -273,6 +273,53 @@ int qemu_socketpair(int domain, int type, int protocol, int sv[2])
      return ret;
  }
  
@@ -131,8 +162,5 @@ index ad8001a4ad..6df285a07b 100644
 +}
 +
  char *
- qemu_get_local_state_pathname(const char *relative_pathname)
+ qemu_get_local_state_dir(void)
  {
--- 
-2.26.2
-
