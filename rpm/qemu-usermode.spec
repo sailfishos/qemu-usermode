@@ -11,29 +11,18 @@ URL:        https://www.qemu.org/
 Source0:    %{name}-%{version}.tar.xz
 Source1:    qemu-binfmt-conf.sh
 
-# fix for sb2 (sb2 needs to hook open, openat):
-Patch0: 0001-Revert-linux-user-Use-safe_syscall-for-open-and-open.patch
-Patch1: 0002-Revert-linux-user-Use-safe_syscall-for-execve-syscal.patch
-Patch2: 0003-Revert-linux-user-Use-safe_syscall-wrapper-for-send-.patch
-Patch3: 0004-Revert-linux-user-Use-safe_syscall-wrapper-for-accep.patch
-Patch4: 0005-Revert-linux-user-Use-safe_syscall-wrapper-for-conne.patch
-Patch5: 0006-Revert-linux-user-Use-direct-syscall-for-utimensat.patch
 # For obs getting stuck in getrandom
-Patch7: 0008-crypto-check-if-getrandom-is-available-properly.patch
-# fix openat syscall (breaks e.g. bc build)
-Patch8: 0009-make-sure-mode-is-passed-to-openat-if-O_TMPFILE-is-s.patch
-# make sure utimensat from glibc is being used (see sb2 fixes above)
-Patch9: 0010-Revert-util-drop-old-utimensat-compat-code.patch
-# one more revert for sb2
-Patch10: 0011-Revert-linux-user-Use-safe_syscall-wrapper-for-fcntl.patch
+Patch0: 0001-crypto-check-if-getrandom-is-available-properly.patch
 # fix f_flags in statfs64
-Patch11: 0012-linux-user-Support-f_flags-in-statfs64-when-availabl.patch
+Patch1: 0002-linux-user-Support-f_flags-in-statfs64-when-availabl.patch
 # fix build failures
-Patch12: 0013-linux-user-Force-avx1-and-avx2-off-since-they-cause-.patch
+Patch2: 0003-linux-user-Force-avx1-and-avx2-off-since-they-cause-.patch
 # fix qemu-user start issues due to running on 64 bit kernel
-Patch13: 0014-linux-user-disable-commpage.patch
+Patch3: 0004-linux-user-disable-commpage.patch
 # fix assert which breaks ustr tests
-Patch14: 0015-linux-user-fix-guest-address-space-assert.patch
+Patch4: 0005-linux-user-fix-guest-address-space-assert.patch
+# sb2 can handle syscalls now, but not if they are not going through the c interface
+Patch5: 0006-linux-user-Disable-safe_syscall-functionality-for-sb.patch
 
 BuildRequires:  pkgconfig(ext2fs)
 BuildRequires:  pkgconfig(glib-2.0)
