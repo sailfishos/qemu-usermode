@@ -1,0 +1,25 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Franz-Josef Haider <franz.haider@jolla.com>
+Date: Thu, 12 Jan 2023 01:22:33 +0200
+Subject: [PATCH 6/6] linux-user: Disable safe_syscall functionality for sb2
+
+---
+ linux-user/qemu.h | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/linux-user/qemu.h b/linux-user/qemu.h
+index 5c964389c101ce00fcffe206bc69fb8b571634bc..557784126a2d63d4150b8d1172574bdc59c5aaad 100644
+--- a/linux-user/qemu.h
++++ b/linux-user/qemu.h
+@@ -1,7 +1,10 @@
+ #ifndef QEMU_H
+ #define QEMU_H
+ 
+-#include "hostdep.h"
++// This is intentionally commented out in order to force qemu to use
++// syscall() from glibc in order to invoke syscalls.
++// It's not great, but sb2 cannot handle inlined assembly syscalls.
++// #include "hostdep.h"
+ #include "cpu.h"
+ #include "exec/exec-all.h"
+ #include "exec/cpu_ldst.h"
