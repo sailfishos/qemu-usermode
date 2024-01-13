@@ -1,0 +1,23 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Matti=20Lehtim=C3=A4ki?= <matti.lehtimaki@jolla.com>
+Date: Sat, 13 Jan 2024 22:57:06 +0200
+Subject: [PATCH] linux-user: Use glibc statx function instead of statx syscall
+ to allow sb2 to hook the call
+
+---
+ linux-user/syscall.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/linux-user/syscall.c b/linux-user/syscall.c
+index 4379d8c11cc5dd72b071257f3ccca05f5ae6cdf4..59e25d5678c55d594d6be7da984fc12d0aebfa1f 100644
+--- a/linux-user/syscall.c
++++ b/linux-user/syscall.c
+@@ -10892,7 +10892,7 @@ static abi_long do_syscall1(void *cpu_env, int num, abi_long arg1,
+                 struct target_statx host_stx;
+                 int mask = arg4;
+ 
+-                ret = get_errno(sys_statx(dirfd, p, flags, mask, &host_stx));
++                ret = get_errno(statx(dirfd, p, flags, mask, &host_stx));
+                 if (!is_error(ret)) {
+                     if (host_to_target_statx(&host_stx, arg5) != 0) {
+                         unlock_user(p, arg2, 0);
