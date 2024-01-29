@@ -34,6 +34,8 @@ Patch12: 0013-linux-user-Force-avx1-and-avx2-off-since-they-cause-.patch
 Patch13: 0014-linux-user-disable-commpage.patch
 # fix assert which breaks ustr tests
 Patch14: 0015-linux-user-fix-guest-address-space-assert.patch
+# Use glibc statx function instead of statx syscall to allow sb2 to hook the call
+Patch15: 0016-linux-user-Use-glibc-statx-function-instead-of-statx.patch
 
 BuildRequires:  pkgconfig(ext2fs)
 BuildRequires:  pkgconfig(glib-2.0)
