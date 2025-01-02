@@ -1,7 +1,7 @@
-From 7d64443c41d6249f098da26ff5fa9bc463ebbd45 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Wed, 29 Jan 2020 12:49:43 +0200
-Subject: [PATCH 06/15] Revert "linux-user: Use direct syscall for utimensat"
+Subject: [PATCH] Revert "linux-user: Use direct syscall for utimensat"
 
 This reverts commit 700fa58e4b9100d6bd77df06d2e5d1f457720c4d.
 ---
@@ -9,7 +9,7 @@ This reverts commit 700fa58e4b9100d6bd77df06d2e5d1f457720c4d.
  1 file changed, 10 insertions(+), 1 deletion(-)
 
 diff --git a/linux-user/syscall.c b/linux-user/syscall.c
-index 88a64dc495..91594472ed 100644
+index 88a64dc495de336c2e89751d3642fd67d9b72bd6..91594472edc02246d383a87fe240fefee9924edb 100644
 --- a/linux-user/syscall.c
 +++ b/linux-user/syscall.c
 @@ -403,7 +403,16 @@ static int sys_openat(int dirfd, const char *pathname, int flags, mode_t mode)
@@ -30,6 +30,3 @@ index 88a64dc495..91594472ed 100644
  #define __NR_sys_utimensat __NR_utimensat
  _syscall4(int,sys_utimensat,int,dirfd,const char *,pathname,
            const struct timespec *,tsp,int,flags)
--- 
-2.26.2
-

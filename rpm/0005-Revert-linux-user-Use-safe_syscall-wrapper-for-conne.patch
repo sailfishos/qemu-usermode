@@ -1,8 +1,8 @@
-From 2d7e33829ff7b9f5f2841d0cc577be45b9f3d3fb Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Wed, 22 Jan 2020 11:13:13 +0200
-Subject: [PATCH 05/15] Revert "linux-user: Use safe_syscall wrapper for
- connect syscall"
+Subject: [PATCH] Revert "linux-user: Use safe_syscall wrapper for connect
+ syscall"
 
 This reverts commit 2a3c7619288af9cfcc09a233dce911bf80849dfb.
 ---
@@ -10,7 +10,7 @@ This reverts commit 2a3c7619288af9cfcc09a233dce911bf80849dfb.
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/linux-user/syscall.c b/linux-user/syscall.c
-index 50a91b9af7..88a64dc495 100644
+index 50a91b9af797d850402d6a94fc89267666b05413..88a64dc495de336c2e89751d3642fd67d9b72bd6 100644
 --- a/linux-user/syscall.c
 +++ b/linux-user/syscall.c
 @@ -3062,7 +3062,7 @@ static abi_long do_connect(int sockfd, abi_ulong target_addr,
@@ -22,6 +22,3 @@ index 50a91b9af7..88a64dc495 100644
  }
  
  /* do_sendrecvmsg_locked() Must return target values and target errnos. */
--- 
-2.26.2
-

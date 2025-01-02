@@ -1,5 +1,5 @@
 # Target architectures to build emulators of
-%define target_list aarch64 arm mipsel
+%define target_list aarch64 arm
 
 Name:       qemu-usermode
 Summary:    Universal CPU emulator
@@ -55,6 +55,18 @@ Requires: %{name}-common = %{version}
 %description
 QEMU is an extremely well-performing CPU emulator that allows you to choose between simulating an entire system and running userspace binaries for different architectures under your native operating system. It currently emulates x86, ARM, PowerPC and SPARC CPUs as well as PC and PowerMac systems.
 
+%package common
+Summary:  Universal CPU emulator (common utilities)
+
+%description common
+This package provides common qemu utilities.
+
+%package static
+Summary:  Universal CPU emulator (static userspace emulators)
+Requires: %{name}-common = %{version}
+
+%description static
+This package provides static builds of userspace CPU emulators.
 
 %prep
 %autosetup -p1 -n qemu-usermode-%{version}/upstream
@@ -88,7 +100,6 @@ for mode in static dynamic; do
 done
 
 %install
-rm -rf %{buildroot}
 mkdir -p %{buildroot}%{_bindir}
 mkdir -p %{buildroot}%{_sbindir}
 install -m 755 %{SOURCE1} $RPM_BUILD_ROOT/%{_sbindir}
@@ -128,19 +139,11 @@ for regularfmt in %{binfmt_dir}/*; do
 done
 
 %files
-%defattr(-,root,root,-)
 %{_bindir}/qemu-*-dynamic
 %{_sbindir}/qemu-binfmt-conf.sh
 %{_exec_prefix}/lib/binfmt.d/qemu-*-dynamic.conf
 
-%package common
-Summary:  Universal CPU emulator (common utilities)
-
-%description common
-This package provides common qemu utilities.
-
 %files common
-%defattr(-,root,root,-)
 %{_bindir}/qemu-img
 %{_bindir}/qemu-io
 %{_bindir}/qemu-nbd
@@ -151,14 +154,6 @@ This package provides common qemu utilities.
 %{_bindir}/elf2dmp
 %{_bindir}/qemu-storage-daemon
 
-%package static
-Summary:  Universal CPU emulator (static userspace emulators)
-Requires: %{name}-common = %{version}
-
-%description static
-This package provides static builds of userspace CPU emulators.
-
 %files static
-%defattr(-,root,root,-)
 %{_bindir}/qemu-*-static
 %{_exec_prefix}/lib/binfmt.d/qemu-*-static.conf

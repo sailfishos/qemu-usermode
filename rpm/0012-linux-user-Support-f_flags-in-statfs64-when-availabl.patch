@@ -1,14 +1,14 @@
-From 33dd663c75aeceade62a2e5803a9648815acd019 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Thu, 30 Jan 2020 12:17:16 +0000
-Subject: [PATCH 12/15] linux-user: Support f_flags in statfs64 when available.
+Subject: [PATCH] linux-user: Support f_flags in statfs64 when available.
 
 ---
  linux-user/syscall.c | 5 +++++
  1 file changed, 5 insertions(+)
 
 diff --git a/linux-user/syscall.c b/linux-user/syscall.c
-index 04ea1724f5..4379d8c11c 100644
+index 04ea1724f59936444647930a0049233c613f1431..4379d8c11cc5dd72b071257f3ccca05f5ae6cdf4 100644
 --- a/linux-user/syscall.c
 +++ b/linux-user/syscall.c
 @@ -9427,6 +9427,11 @@ static abi_long do_syscall1(void *cpu_env, int num, abi_long arg1,
@@ -23,6 +23,3 @@ index 04ea1724f5..4379d8c11c 100644
              memset(target_stfs->f_spare, 0, sizeof(target_stfs->f_spare));
              unlock_user_struct(target_stfs, arg3, 1);
          }
--- 
-2.26.2
-
