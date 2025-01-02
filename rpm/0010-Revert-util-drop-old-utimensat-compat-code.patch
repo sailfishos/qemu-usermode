@@ -1,7 +1,7 @@
-From b633f9758ed8101ea56a7d3c2303ac1f6b994258 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Wed, 29 Jan 2020 11:21:54 +0000
-Subject: [PATCH 10/15] Revert "util: drop old utimensat() compat code"
+Subject: [PATCH] Revert "util: drop old utimensat() compat code"
 
 This reverts commit fcdcf1eed2fd26bfe836080755ba4322d3c1f2cc.
 
@@ -14,7 +14,7 @@ Conflicts:
  3 files changed, 80 insertions(+)
 
 diff --git a/configure b/configure
-index 2acc4d1465..5d47dbc1e8 100755
+index 2acc4d1465f8165ae3a238784231a1c50d3b0d4f..5d47dbc1e8125d09a031ada83c483fcc67e87146 100755
 --- a/configure
 +++ b/configure
 @@ -4599,6 +4599,25 @@ if compile_prog "" "" ; then
@@ -54,7 +54,7 @@ index 2acc4d1465..5d47dbc1e8 100755
    echo "CONFIG_PIPE2=y" >> $config_host_mak
  fi
 diff --git a/include/sysemu/os-posix.h b/include/sysemu/os-posix.h
-index 629c8c648b..900bdcb45a 100644
+index 629c8c648b7abb1e7bf6277925b826bcb10ca13b..900bdcb45ad0a9a058a24259015b03b58b4b442d 100644
 --- a/include/sysemu/os-posix.h
 +++ b/include/sysemu/os-posix.h
 @@ -51,6 +51,17 @@ int os_mlock(void);
@@ -76,7 +76,7 @@ index 629c8c648b..900bdcb45a 100644
  
  /**
 diff --git a/util/oslib-posix.c b/util/oslib-posix.c
-index ad8001a4ad..6df285a07b 100644
+index ad8001a4ad8798692531d34cfabb27bf096d3d6e..6df285a07b5a74e7a0a06d5c9863c4444ff30249 100644
 --- a/util/oslib-posix.c
 +++ b/util/oslib-posix.c
 @@ -336,6 +336,53 @@ int qemu_pipe(int pipefd[2])
@@ -133,6 +133,3 @@ index ad8001a4ad..6df285a07b 100644
  char *
  qemu_get_local_state_pathname(const char *relative_pathname)
  {
--- 
-2.26.2
-

@@ -1,8 +1,8 @@
-From 34c2acb97023dbe6fdf2e81cbb1e55b2e25bc169 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Wed, 22 Jan 2020 10:57:53 +0200
-Subject: [PATCH 03/15] Revert "linux-user: Use safe_syscall wrapper for send*
- and recv* syscalls"
+Subject: [PATCH] Revert "linux-user: Use safe_syscall wrapper for send* and
+ recv* syscalls"
 
 This reverts commit 666875306e03e1f94e1d4c808502585c10abc69a.
 ---
@@ -10,7 +10,7 @@ This reverts commit 666875306e03e1f94e1d4c808502585c10abc69a.
  1 file changed, 7 insertions(+), 15 deletions(-)
 
 diff --git a/linux-user/syscall.c b/linux-user/syscall.c
-index c0f675800d..4b87fafe44 100644
+index c0f675800dad4934221c19cc51945f844107b943..4b87fafe44c6d220308904647d7452b937009006 100644
 --- a/linux-user/syscall.c
 +++ b/linux-user/syscall.c
 @@ -795,14 +795,6 @@ safe_syscall5(ssize_t, preadv, int, fd, const struct iovec *, iov, int, iovcnt,
@@ -76,6 +76,3 @@ index c0f675800d..4b87fafe44 100644
      }
      if (!is_error(ret)) {
          if (fd_trans_host_to_target_data(fd)) {
--- 
-2.26.2
-

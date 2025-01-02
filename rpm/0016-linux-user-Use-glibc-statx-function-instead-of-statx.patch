@@ -5,19 +5,30 @@ Subject: [PATCH] linux-user: Use glibc statx function instead of statx syscall
  to allow sb2 to hook the call
 
 ---
- linux-user/syscall.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ linux-user/syscall.c | 6 +-----
+ 1 file changed, 1 insertion(+), 5 deletions(-)
 
 diff --git a/linux-user/syscall.c b/linux-user/syscall.c
-index 4379d8c11cc5dd72b071257f3ccca05f5ae6cdf4..59e25d5678c55d594d6be7da984fc12d0aebfa1f 100644
+index 4379d8c11cc5dd72b071257f3ccca05f5ae6cdf4..20701fc9f848faddd8b5a8f4244dbe2f0cc9e90b 100644
 --- a/linux-user/syscall.c
 +++ b/linux-user/syscall.c
-@@ -10892,7 +10892,7 @@ static abi_long do_syscall1(void *cpu_env, int num, abi_long arg1,
+@@ -344,10 +344,6 @@ _syscall5(int, kcmp, pid_t, pid1, pid_t, pid2, int, type,
+ /*
+  * It is assumed that struct statx is architecture independent.
+  */
+-#if defined(TARGET_NR_statx) && defined(__NR_statx)
+-_syscall5(int, sys_statx, int, dirfd, const char *, pathname, int, flags,
+-          unsigned int, mask, struct target_statx *, statxbuf)
+-#endif
+ #if defined(TARGET_NR_membarrier) && defined(__NR_membarrier)
+ _syscall2(int, membarrier, int, cmd, int, flags)
+ #endif
+@@ -10892,7 +10888,7 @@ static abi_long do_syscall1(void *cpu_env, int num, abi_long arg1,
                  struct target_statx host_stx;
                  int mask = arg4;
  
 -                ret = get_errno(sys_statx(dirfd, p, flags, mask, &host_stx));
-+                ret = get_errno(statx(dirfd, p, flags, mask, &host_stx));
++                ret = get_errno(statx(dirfd, p, flags, mask, (struct statx *)&host_stx));
                  if (!is_error(ret)) {
                      if (host_to_target_statx(&host_stx, arg5) != 0) {
                          unlock_user(p, arg2, 0);

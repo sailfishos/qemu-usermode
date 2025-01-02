@@ -1,14 +1,14 @@
-From 0ae25695228fefca462304c91735fc1736156649 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Tue, 8 Dec 2020 00:19:06 +0200
-Subject: [PATCH 14/15] linux-user: disable commpage
+Subject: [PATCH] linux-user: disable commpage
 
 ---
  linux-user/elfload.c | 5 ++++-
  1 file changed, 4 insertions(+), 1 deletion(-)
 
 diff --git a/linux-user/elfload.c b/linux-user/elfload.c
-index fe9dfe795d..7119cf531a 100644
+index fe9dfe795ddd63ab862ac8c6f31ff7a25700c5bb..7119cf531a3002ff509549d5647f49699b06f4de 100644
 --- a/linux-user/elfload.c
 +++ b/linux-user/elfload.c
 @@ -383,8 +383,10 @@ enum {
@@ -31,6 +31,3 @@ index fe9dfe795d..7119cf531a 100644
  
  #define ELF_HWCAP get_elf_hwcap()
  #define ELF_HWCAP2 get_elf_hwcap2()
--- 
-2.26.2
-

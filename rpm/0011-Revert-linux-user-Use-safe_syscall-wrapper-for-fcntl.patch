@@ -1,7 +1,7 @@
-From 3025c3ad424d229f4d52209d7eec058d9fec8816 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Frajo Haider <f_haider@gmx.at>
 Date: Wed, 29 Jan 2020 12:42:08 +0000
-Subject: [PATCH 11/15] Revert "linux-user: Use safe_syscall wrapper for fcntl"
+Subject: [PATCH] Revert "linux-user: Use safe_syscall wrapper for fcntl"
 
 This reverts commit 435da5e7092aa54e12044b9401b42c4a9333c74d.
 
@@ -13,7 +13,7 @@ Conflicts:
  1 file changed, 12 insertions(+), 24 deletions(-)
 
 diff --git a/linux-user/syscall.c b/linux-user/syscall.c
-index 5ec9a19ca2..04ea1724f5 100644
+index 5ec9a19ca2fe98edd0f76a36e6727984773398df..04ea1724f59936444647930a0049233c613f1431 100644
 --- a/linux-user/syscall.c
 +++ b/linux-user/syscall.c
 @@ -851,16 +851,6 @@ safe_syscall5(int, mq_timedreceive, int, mqdes, char *, msg_ptr,
@@ -131,6 +131,3 @@ index 5ec9a19ca2..04ea1724f5 100644
  	    break;
          default:
              ret = do_fcntl(arg1, arg2, arg3);
--- 
-2.26.2
-
