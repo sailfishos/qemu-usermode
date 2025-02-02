@@ -6,7 +6,7 @@ Summary:    Universal CPU emulator
 Version:    5.1.0
 Release:    1
 License:    GPLv2 and BSD and MIT and CC-BY
-ExclusiveArch:  %{ix86}
+ExclusiveArch:  %{ix86} x86_64
 URL:        https://www.qemu.org/
 Source0:    %{name}-%{version}.tar.xz
 Source1:    qemu-binfmt-conf.sh
